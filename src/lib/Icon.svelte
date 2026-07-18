@@ -16,6 +16,12 @@
 	import Refresh from '~icons/lucide/refresh-cw';
 	import Logout from '~icons/lucide/log-out';
 	import Folder from '~icons/lucide/folder';
+	import Sun from '~icons/lucide/sun';
+	import ArrowRight from '~icons/lucide/arrow-right';
+	import Armchair from '~icons/lucide/armchair';
+	import ChevronDown from '~icons/lucide/chevron-down';
+	import ChevronLeft from '~icons/lucide/chevron-left';
+	import ChevronRight from '~icons/lucide/chevron-right';
 
 	type IconName = keyof typeof icons;
 
@@ -36,6 +42,12 @@
 		refresh: Refresh,
 		logout: Logout,
 		projects: Folder,
+		sun: Sun,
+		next: ArrowRight,
+		weekend: Armchair,
+		'chevron-down': ChevronDown,
+		'chevron-left': ChevronLeft,
+		'chevron-right': ChevronRight,
 	};
 </script>
 

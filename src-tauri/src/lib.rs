@@ -60,10 +60,19 @@ fn toggle_quick_add<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
         tauri::WebviewUrl::App("quickadd".into()),
     )
     .title("Quick Add")
-    .inner_size(560.0, 132.0)
+    // A fixed, larger transparent overlay: the capture card sits at the top and
+    // its popovers (e.g. the date picker) float over the rest, which stays
+    // transparent (the desktop shows through). We never resize the window — the
+    // frontend dismisses it on click-away / blur instead. This avoids the
+    // `setSize()`-on-undecorated-window bug (tauri#5679, tauri#11975) entirely.
+    .inner_size(600.0, 700.0)
     .resizable(false)
     .decorations(false)
     .transparent(true)
+    // On macOS the native shadow of a transparent window traces the opaque
+    // pixels, so with a floating popover it draws an ugly L-shaped outline.
+    // Disable it — the card carries its own CSS shadow inside the webview.
+    .shadow(false)
     .always_on_top(true)
     .skip_taskbar(true)
     .center()

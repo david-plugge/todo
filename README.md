@@ -9,7 +9,9 @@ with self-hosted sync through **PocketBase**.
 - **Due date + planned date** — separate "hard deadline" and "when I'll work on it".
 - **Today view** with **manual drag-to-reorder**.
 - **Projects** with colors.
-- **Global hotkey quick-add** on Mac — `Cmd + Shift + Space` opens a floating capture window.
+- **Global hotkey quick-add** on Mac — `Cmd + Shift + Space` opens a floating capture
+  window (title, description, planned + due dates via a calendar popover, and a project
+  picker).
 - **Optional self-hosted sync** — log in to a PocketBase server to sync across
   devices. Lossless: concurrent edits to different fields both survive, and the
   full history is replayable. The app stays fully usable offline without it.
@@ -77,7 +79,9 @@ every field edit is an immutable, HLC-stamped change. That log is the source of 
   build only — not Tauri / dev). The `(app)` layout group is the shell (Sidebar + BottomNav + sync);
   its pages are the special views (`[view]` → today/upcoming/inbox/all) and projects (`project/[id]`).
   `/quickadd` is a separate, shell-less page — prerendered to `quickadd.html`, which the Tauri hotkey
-  window loads directly.
+  window loads directly. It's a rich capture card (title, description, planned/due date pickers, project
+  picker) whose calendar/project popovers float _outside_ the card — see the `lib.rs` note below for how
+  the Tauri window is set up to allow that.
 - `src/service-worker.ts` — native SvelteKit service worker: precaches every built asset (hashed JS/CSS,
   the app shell, favicon) so the app loads offline; cache-first for immutable assets, network-first for
   navigations with a cached-shell fallback. The sync API (`/api/`) and admin (`/_/`) are never intercepted,
@@ -94,7 +98,13 @@ every field edit is an immutable, HLC-stamped change. That log is the source of 
   PocketBase's `--indexFallback` and Tauri's asset loader); the `@tailwindcss/vite` plugin; Kit's SW
   auto-registration is off; the `__TAURI__` build flag (from `TAURI_ENV_PLATFORM`) tree-shakes Tauri-only
   branches out of the web build.
-- `src-tauri/src/lib.rs` — registers the global shortcut and creates/toggles the quick-add window.
+- `src-tauri/src/lib.rs` — registers the global shortcut and creates/toggles the quick-add window. The
+  window is a **fixed, larger transparent overlay** (borderless, `resizable(false)`, `shadow(false)`,
+  always-on-top): the capture card sits at the top and its popovers float over the rest of the window,
+  which stays transparent (the desktop shows through). It's never resized — resizing an undecorated
+  transparent window is buggy (tauri#5679/#11975) — the frontend dismisses it on click-away / blur
+  instead. `shadow(false)` avoids macOS tracing the popover's outline (a no-op on transparent macOS but
+  correct for Windows/Linux); the card carries its own CSS shadow inside the webview.
 - `Dockerfile`, `compose.yml`, `compose.dev.yml` — at the repo root: the multi-stage image
   (builds the SPA and serves it from PocketBase) and prod/dev compose stacks.
 - `server/` — backend assets: the bundled schema migration (`pb_migrations/`), setup script, JSVM
