@@ -24,6 +24,7 @@ with self-hosted sync through **PocketBase**.
 | Layer                  | Choice                                                                            |
 | ---------------------- | --------------------------------------------------------------------------------- |
 | UI                     | SvelteKit (Svelte 5) + TypeScript, adapter-static SPA                             |
+| Styling                | Tailwind CSS v4 (`@tailwindcss/vite`), design tokens mapped into `@theme`         |
 | Desktop / mobile shell | Tauri v2                                                                          |
 | Local store            | Dexie (IndexedDB)                                                                 |
 | Drag sort              | svelte-dnd-action                                                                 |
@@ -82,9 +83,17 @@ every field edit is an immutable, HLC-stamped change. That log is the source of 
   navigations with a cached-shell fallback. The sync API (`/api/`) and admin (`/_/`) are never intercepted,
   so offline falls back to local IndexedDB rather than serving stale API responses. Registered manually
   (see the root layout) and only in the web build, so it never runs inside the native app.
+- `src/app.css` / `src/routes/layout.css` — styling. `app.css` holds the design tokens as CSS custom
+  properties (`--bg`, `--text`, `--accent`, …) with light/dark via `prefers-color-scheme`, plus base
+  resets. `layout.css` imports Tailwind CSS v4 and maps those tokens into `@theme` so they become
+  utilities (`bg-bg`, `text-dim`, `border-line`, `rounded-card`, …) that flip with the theme
+  automatically — no `dark:` variants. Tailwind's default color palette is disabled (`--color-*: initial`),
+  so the theme is explicit-only. Components are styled with utilities; the only remaining `<style>` blocks
+  are `@keyframes` and one `:global(body)` rule (transparent Tauri quick-add window).
 - `svelte.config.js` / `vite.config.ts` — adapter-static in SPA mode (`fallback: index.html`, matching
-  PocketBase's `--indexFallback` and Tauri's asset loader); Kit's SW auto-registration is off; the
-  `__TAURI__` build flag (from `TAURI_ENV_PLATFORM`) tree-shakes Tauri-only branches out of the web build.
+  PocketBase's `--indexFallback` and Tauri's asset loader); the `@tailwindcss/vite` plugin; Kit's SW
+  auto-registration is off; the `__TAURI__` build flag (from `TAURI_ENV_PLATFORM`) tree-shakes Tauri-only
+  branches out of the web build.
 - `src-tauri/src/lib.rs` — registers the global shortcut and creates/toggles the quick-add window.
 - `Dockerfile`, `compose.yml`, `compose.dev.yml` — at the repo root: the multi-stage image
   (builds the SPA and serves it from PocketBase) and prod/dev compose stacks.

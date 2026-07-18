@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 import Icons from 'unplugin-icons/vite';
@@ -11,10 +12,9 @@ const isTauri = !!process.env.TAURI_ENV_PLATFORM;
 export default defineConfig({
 	// Compile-time flag so Tauri-only branches tree-shake out of the web build
 	// (and vice versa). Typed in src/globals.d.ts.
-	define: {
-		__TAURI__: JSON.stringify(isTauri),
-	},
+	define: { __TAURI__: JSON.stringify(isTauri) },
 	plugins: [
+		tailwindcss(),
 		sveltekit(),
 		// Lucide icons compiled to Svelte components, imported as `~icons/lucide/*`.
 		Icons({ compiler: 'svelte' }),

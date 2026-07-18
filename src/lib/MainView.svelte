@@ -108,20 +108,27 @@
 	}
 </script>
 
-<main>
-	<div class="inner">
-		<header class="page-head">
-			<h1><Icon name={meta.icon} size={20} /> {meta.title}</h1>
-			<span class="count">{tasks.length}</span>
+<main class="h-full min-w-0 flex-1 overflow-y-auto">
+	<div
+		class="mx-auto flex max-w-[720px] flex-col gap-[14px] px-6 pt-[28px] pb-20 max-[640px]:px-[14px] max-[640px]:pt-[18px] max-[640px]:pb-[calc(84px+env(safe-area-inset-bottom))]"
+	>
+		<header class="flex items-center gap-2.5">
+			<h1 class="m-0 flex items-center gap-[9px] text-[20px] font-[650]">
+				<Icon name={meta.icon} size={20} />
+				{meta.title}
+			</h1>
+			<span class="rounded-[20px] border border-line bg-elev px-[9px] py-px text-[13px] text-faint"
+				>{tasks.length}</span
+			>
 		</header>
 
 		<Composer projectId={meta.projectId} plannedDate={meta.planned} />
 
 		{#if tasks.length === 0 && completedTasks.length === 0}
-			<p class="empty">Nothing here. Add your first task above.</p>
+			<p class="px-1 py-6 text-faint">Nothing here. Add your first task above.</p>
 		{:else if meta.manual}
 			<section
-				class="list"
+				class="flex flex-col gap-0.5 outline-none"
 				use:dndzone={{ items: tasks, flipDurationMs: 160, dropTargetStyle: {} }}
 				onconsider={onConsider}
 				onfinalize={onFinalize}
@@ -137,7 +144,7 @@
 				{/each}
 			</section>
 		{:else}
-			<section class="list">
+			<section class="flex flex-col gap-0.5 outline-none">
 				{#each tasks as task (task.id)}
 					<TaskRow
 						{task}
@@ -149,9 +156,13 @@
 		{/if}
 
 		{#if completedTasks.length > 0}
-			<section class="completed">
-				<h2 class="completed-head">Completed</h2>
-				<div class="list">
+			<section class="mt-1.5 flex flex-col gap-0.5 border-t border-line pt-3">
+				<h2
+					class="mt-0 mr-0 mb-1 ml-2.5 text-[12px] font-semibold tracking-[0.04em] text-faint uppercase"
+				>
+					Completed
+				</h2>
+				<div class="flex flex-col gap-0.5 outline-none">
 					{#each completedTasks as task (task.id)}
 						<TaskRow
 							{task}
@@ -168,74 +179,3 @@
 		<TaskEditor task={editing} {projects} onclose={() => (editing = null)} />
 	{/if}
 </main>
-
-<style>
-	main {
-		flex: 1;
-		min-width: 0;
-		overflow-y: auto;
-		height: 100%;
-	}
-	.inner {
-		max-width: 720px;
-		margin: 0 auto;
-		padding: 28px 24px 80px;
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-	}
-	/* Tighter gutters on phones, and clear the fixed bottom tab bar. */
-	@media (max-width: 640px) {
-		.inner {
-			padding: 18px 14px calc(84px + env(safe-area-inset-bottom));
-		}
-	}
-	.page-head {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-	}
-	h1 {
-		display: flex;
-		align-items: center;
-		gap: 9px;
-		font-size: 20px;
-		font-weight: 650;
-		margin: 0;
-	}
-	.count {
-		font-size: 13px;
-		color: var(--text-faint);
-		background: var(--bg-elev);
-		border: 1px solid var(--border);
-		border-radius: 20px;
-		padding: 1px 9px;
-	}
-	.list {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		outline: none;
-	}
-	.empty {
-		color: var(--text-faint);
-		padding: 24px 4px;
-	}
-	/* Completed-today tasks: a separate, unordered list below the open ones. */
-	.completed {
-		display: flex;
-		flex-direction: column;
-		gap: 2px;
-		margin-top: 6px;
-		padding-top: 12px;
-		border-top: 1px solid var(--border);
-	}
-	.completed-head {
-		font-size: 12px;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-		color: var(--text-faint);
-		margin: 0 0 4px 10px;
-	}
-</style>

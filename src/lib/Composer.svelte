@@ -22,48 +22,19 @@
 </script>
 
 <form
-	class="composer"
+	class="group flex items-center gap-2 rounded-card border border-line bg-elev px-3 py-2.5 transition-colors duration-[.12s] focus-within:border-accent focus-within:bg-bg"
 	onsubmit={(e) => {
 		e.preventDefault();
 		submit();
 	}}
 >
-	<span class="plus"><Icon name="plus" size={16} /></span>
-	<input bind:this={el} bind:value={title} {placeholder} autocomplete="off" spellcheck="false" />
+	<span class="flex text-faint group-focus-within:text-accent"><Icon name="plus" size={16} /></span>
+	<input
+		bind:this={el}
+		bind:value={title}
+		{placeholder}
+		autocomplete="off"
+		spellcheck="false"
+		class="flex-1 border-none bg-transparent p-0 outline-none placeholder:text-faint"
+	/>
 </form>
-
-<style>
-	.composer {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 10px 12px;
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		background: var(--bg-elev);
-		transition:
-			border-color 0.12s,
-			background 0.12s;
-	}
-	.composer:focus-within {
-		border-color: var(--accent);
-		background: var(--bg);
-	}
-	.plus {
-		color: var(--text-faint);
-		display: flex;
-	}
-	.composer:focus-within .plus {
-		color: var(--accent);
-	}
-	input {
-		flex: 1;
-		border: none;
-		background: transparent;
-		outline: none;
-		padding: 0;
-	}
-	input::placeholder {
-		color: var(--text-faint);
-	}
-</style>

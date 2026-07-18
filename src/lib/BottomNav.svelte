@@ -32,26 +32,43 @@
 		onselect(s);
 		sheetOpen = false;
 	}
+
+	const tab =
+		'flex flex-1 flex-col items-center gap-[3px] border-none bg-transparent px-[2px] pt-2 pb-[7px] text-[10.5px] font-medium text-faint transition-colors duration-100 active:bg-hover';
 </script>
 
 {#if sheetOpen}
-	<div class="backdrop" onclick={() => (sheetOpen = false)} role="presentation"></div>
-	<div class="sheet" role="dialog" aria-modal="true" aria-label="Projects">
-		<div class="handle" aria-hidden="true"></div>
+	<div
+		class="fixed inset-0 z-[16] hidden animate-[fade_0.15s_ease] bg-black/28 max-[640px]:block"
+		onclick={() => (sheetOpen = false)}
+		role="presentation"
+	></div>
+	<div
+		class="fixed inset-x-0 bottom-0 z-[17] hidden max-h-[75vh] flex-col gap-[14px] overflow-y-auto rounded-t-[16px] border-t border-line bg-bg px-[14px] pt-2 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-pop animate-[slideup_0.2s_cubic-bezier(0.2,0.8,0.2,1)] max-[640px]:flex"
+		role="dialog"
+		aria-modal="true"
+		aria-label="Projects"
+	>
+		<div
+			class="mx-auto my-[2px] h-1 w-9 flex-none rounded-[2px] bg-line-strong"
+			aria-hidden="true"
+		></div>
 		<ProjectNav {projects} {current} onselect={pickFromSheet} />
 		<SyncBar />
 	</div>
 {/if}
 
-<nav class="bottombar" aria-label="Main">
+<nav
+	class="fixed inset-x-0 bottom-0 z-[15] hidden border-t border-line bg-elev pb-[env(safe-area-inset-bottom)] max-[640px]:flex"
+	aria-label="Main"
+>
 	{#each views as v (v.view)}
-		<button class="tab" class:active={isView(v.view)} onclick={() => pickView(v.view)}>
+		<button class={[tab, isView(v.view) && 'text-accent']} onclick={() => pickView(v.view)}>
 			<Icon name={v.icon} size={21} /><span>{v.label}</span>
 		</button>
 	{/each}
 	<button
-		class="tab"
-		class:active={current.kind === 'project'}
+		class={[tab, current.kind === 'project' && 'text-accent']}
 		aria-haspopup="dialog"
 		aria-expanded={sheetOpen}
 		onclick={() => (sheetOpen = true)}
@@ -61,87 +78,15 @@
 </nav>
 
 <style>
-	.bottombar {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		z-index: 15;
-		display: flex;
-		background: var(--bg-elev);
-		border-top: 1px solid var(--border);
-		padding-bottom: env(safe-area-inset-bottom);
-	}
-	.tab {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 3px;
-		background: transparent;
-		border: none;
-		color: var(--text-faint);
-		padding: 8px 2px 7px;
-		font-size: 10.5px;
-		font-weight: 500;
-		transition: color 0.1s;
-	}
-	.tab:active {
-		background: var(--bg-hover);
-	}
-	.tab.active {
-		color: var(--accent);
-	}
-
-	.backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.28);
-		z-index: 16;
-		animation: fade 0.15s ease;
-	}
-	.sheet {
-		position: fixed;
-		left: 0;
-		right: 0;
-		bottom: 0;
-		z-index: 17;
-		max-height: 75vh;
-		overflow-y: auto;
-		background: var(--bg);
-		border-top: 1px solid var(--border);
-		border-radius: 16px 16px 0 0;
-		box-shadow: var(--shadow-lg);
-		padding: 8px 14px calc(16px + env(safe-area-inset-bottom));
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		animation: slideup 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-	}
-	.handle {
-		width: 36px;
-		height: 4px;
-		border-radius: 2px;
-		background: var(--border-strong);
-		margin: 2px auto 2px;
-		flex: none;
-	}
-
-	/* The bottom bar is a phones-only replacement for the sidebar. */
-	@media (min-width: 641px) {
-		.bottombar,
-		.backdrop,
-		.sheet {
-			display: none;
-		}
-	}
-
-	@keyframes fade {
+	/* Keyframes can't be expressed as utilities; kept global so the Tailwind
+	 * animate-[...] utilities can reference them (Svelte scopes keyframes
+	 * otherwise). */
+	@keyframes -global-fade {
 		from {
 			opacity: 0;
 		}
 	}
-	@keyframes slideup {
+	@keyframes -global-slideup {
 		from {
 			transform: translateY(100%);
 		}

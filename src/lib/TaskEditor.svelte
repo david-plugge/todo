@@ -55,28 +55,64 @@
 	}
 
 	const today = todayISO();
+
+	const fieldLabel =
+		'flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.04em] text-dim';
+	const control =
+		'rounded-soft border border-line bg-elev px-[9px] py-[7px] text-fg outline-none focus:border-accent';
+	const chipBtn =
+		'rounded-[20px] border border-line bg-elev px-[9px] py-[3px] text-[12px] text-dim transition-all duration-[.12s]';
 </script>
 
-<div class="backdrop" onclick={onclose} role="presentation"></div>
-<div class="drawer" role="dialog" aria-modal="true" aria-label="Edit task">
-	<header>
-		<button class="check" class:done={task.completed} onclick={() => toggleComplete(task)}>
+<div
+	class="fixed inset-0 z-20 bg-black/[0.18] [animation:fade_0.15s_ease]"
+	onclick={onclose}
+	role="presentation"
+></div>
+<div
+	class="fixed inset-y-0 right-0 z-[21] flex w-[380px] max-w-[92vw] flex-col gap-[14px] overflow-y-auto border-l border-line bg-bg p-4 shadow-pop [animation:slide_0.18s_cubic-bezier(0.2,0.8,0.2,1)] max-[640px]:w-full max-[640px]:max-w-full"
+	role="dialog"
+	aria-modal="true"
+	aria-label="Edit task"
+>
+	<header class="flex items-center justify-between">
+		<button
+			class={[
+				'inline-flex items-center gap-2 rounded-[20px] border py-[5px] pr-3 pl-2 transition-all duration-[.12s]',
+				task.completed
+					? 'border-accent bg-accent text-white'
+					: 'border-line-strong bg-transparent text-dim hover:border-accent hover:text-fg',
+			]}
+			onclick={() => toggleComplete(task)}
+		>
 			{#if task.completed}<Icon name="check" size={12} />{/if}
 			<span>{task.completed ? 'Completed' : 'Mark complete'}</span>
 		</button>
-		<button class="icon-btn" aria-label="Close" onclick={onclose}
-			><Icon name="x" size={17} /></button
+		<button
+			class="flex rounded-soft border-0 bg-transparent p-1.5 text-dim hover:bg-hover hover:text-fg"
+			aria-label="Close"
+			onclick={onclose}><Icon name="x" size={17} /></button
 		>
 	</header>
 
-	<input class="title-input" bind:value={title} oninput={saveText} placeholder="Task title" />
+	<input
+		class="border-0 bg-transparent px-0 py-[2px] text-[17px] font-semibold outline-none"
+		bind:value={title}
+		oninput={saveText}
+		placeholder="Task title"
+	/>
 
-	<textarea class="notes-input" bind:value={notes} oninput={saveText} placeholder="Notes…" rows="3"
-	></textarea>
+	<textarea
+		class="resize-y rounded-soft border border-line bg-elev px-2.5 py-2 leading-normal outline-none focus:border-accent"
+		bind:value={notes}
+		oninput={saveText}
+		placeholder="Notes…"
+		rows="3"></textarea>
 
-	<div class="field">
-		<label for="editor-project">Project</label>
+	<div class="flex flex-col gap-[7px]">
+		<label class={fieldLabel} for="editor-project">Project</label>
 		<select
+			class={control}
 			id="editor-project"
 			value={projectId ?? ''}
 			onchange={(e) => setProject(e.currentTarget.value)}
@@ -88,231 +124,92 @@
 		</select>
 	</div>
 
-	<div class="field">
-		<label for="editor-planned"
-			><Icon name="calendar" size={13} /> Planned {#if plannedDate}<span class="rel"
+	<div class="flex flex-col gap-[7px]">
+		<label class={fieldLabel} for="editor-planned"
+			><Icon name="calendar" size={13} /> Planned {#if plannedDate}<span
+					class="font-medium tracking-normal normal-case text-accent"
 					>· {relativeLabel(plannedDate)}</span
 				>{/if}</label
 		>
-		<div class="date-row">
+		<div class="flex flex-col gap-[7px]">
 			<input
+				class={control}
 				id="editor-planned"
 				type="date"
 				value={plannedDate ?? ''}
 				onchange={(e) => setPlanned(e.currentTarget.value || null)}
 			/>
-			<div class="chips">
-				<button onclick={() => setPlanned(today)}>Today</button>
-				<button onclick={() => setPlanned(addDaysISO(today, 1))}>Tomorrow</button>
-				<button onclick={() => setPlanned(addDaysISO(today, 7))}>Next week</button>
-				{#if plannedDate}<button class="clear" onclick={() => setPlanned(null)}>Clear</button>{/if}
+			<div class="flex flex-wrap gap-[5px]">
+				<button
+					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					onclick={() => setPlanned(today)}>Today</button
+				>
+				<button
+					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					onclick={() => setPlanned(addDaysISO(today, 1))}>Tomorrow</button
+				>
+				<button
+					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					onclick={() => setPlanned(addDaysISO(today, 7))}>Next week</button
+				>
+				{#if plannedDate}<button
+						class={[chipBtn, 'hover:border-danger hover:text-danger']}
+						onclick={() => setPlanned(null)}>Clear</button
+					>{/if}
 			</div>
 		</div>
 	</div>
 
-	<div class="field">
-		<label for="editor-due"
-			><Icon name="flag" size={13} /> Due {#if dueDate}<span class="rel"
+	<div class="flex flex-col gap-[7px]">
+		<label class={fieldLabel} for="editor-due"
+			><Icon name="flag" size={13} /> Due {#if dueDate}<span
+					class="font-medium tracking-normal normal-case text-accent"
 					>· {relativeLabel(dueDate)}</span
 				>{/if}</label
 		>
-		<div class="date-row">
+		<div class="flex flex-col gap-[7px]">
 			<input
+				class={control}
 				id="editor-due"
 				type="date"
 				value={dueDate ?? ''}
 				onchange={(e) => setDue(e.currentTarget.value || null)}
 			/>
-			<div class="chips">
-				<button onclick={() => setDue(today)}>Today</button>
-				<button onclick={() => setDue(addDaysISO(today, 1))}>Tomorrow</button>
-				<button onclick={() => setDue(addDaysISO(today, 7))}>Next week</button>
-				{#if dueDate}<button class="clear" onclick={() => setDue(null)}>Clear</button>{/if}
+			<div class="flex flex-wrap gap-[5px]">
+				<button class={[chipBtn, 'hover:border-accent hover:text-fg']} onclick={() => setDue(today)}
+					>Today</button
+				>
+				<button
+					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					onclick={() => setDue(addDaysISO(today, 1))}>Tomorrow</button
+				>
+				<button
+					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					onclick={() => setDue(addDaysISO(today, 7))}>Next week</button
+				>
+				{#if dueDate}<button
+						class={[chipBtn, 'hover:border-danger hover:text-danger']}
+						onclick={() => setDue(null)}>Clear</button
+					>{/if}
 			</div>
 		</div>
 	</div>
 
-	<footer>
-		<button class="danger" onclick={remove}><Icon name="trash" size={15} /> Delete task</button>
+	<footer class="mt-auto pt-2">
+		<button
+			class="inline-flex items-center gap-[7px] rounded-soft border border-line bg-transparent px-3 py-[7px] text-danger transition-all duration-[.12s] hover:border-danger hover:bg-danger/10"
+			onclick={remove}><Icon name="trash" size={15} /> Delete task</button
+		>
 	</footer>
 </div>
 
 <style>
-	.backdrop {
-		position: fixed;
-		inset: 0;
-		background: rgba(0, 0, 0, 0.18);
-		animation: fade 0.15s ease;
-		z-index: 20;
-	}
-	.drawer {
-		position: fixed;
-		top: 0;
-		right: 0;
-		bottom: 0;
-		width: 380px;
-		max-width: 92vw;
-		background: var(--bg);
-		border-left: 1px solid var(--border);
-		box-shadow: var(--shadow-lg);
-		padding: 16px;
-		display: flex;
-		flex-direction: column;
-		gap: 14px;
-		overflow-y: auto;
-		z-index: 21;
-		animation: slide 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
-	}
-	header {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-	}
-	.check {
-		display: inline-flex;
-		align-items: center;
-		gap: 8px;
-		border: 1px solid var(--border-strong);
-		background: transparent;
-		color: var(--text-dim);
-		padding: 5px 12px 5px 8px;
-		border-radius: 20px;
-		transition: all 0.12s;
-	}
-	.check:hover {
-		border-color: var(--accent);
-		color: var(--text);
-	}
-	.check.done {
-		background: var(--accent);
-		border-color: var(--accent);
-		color: #fff;
-	}
-	.icon-btn {
-		background: transparent;
-		border: none;
-		color: var(--text-dim);
-		padding: 6px;
-		border-radius: var(--radius-sm);
-		display: flex;
-	}
-	.icon-btn:hover {
-		background: var(--bg-hover);
-		color: var(--text);
-	}
-	.title-input {
-		border: none;
-		background: transparent;
-		outline: none;
-		font-size: 17px;
-		font-weight: 600;
-		padding: 2px 0;
-	}
-	.notes-input {
-		border: 1px solid var(--border);
-		background: var(--bg-elev);
-		border-radius: var(--radius-sm);
-		padding: 8px 10px;
-		outline: none;
-		resize: vertical;
-		line-height: 1.5;
-	}
-	.notes-input:focus {
-		border-color: var(--accent);
-	}
-	.field {
-		display: flex;
-		flex-direction: column;
-		gap: 7px;
-	}
-	.field > label {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		font-size: 12px;
-		font-weight: 600;
-		color: var(--text-dim);
-		text-transform: uppercase;
-		letter-spacing: 0.04em;
-	}
-	.rel {
-		text-transform: none;
-		font-weight: 500;
-		letter-spacing: 0;
-		color: var(--accent);
-	}
-	select,
-	input[type='date'] {
-		border: 1px solid var(--border);
-		background: var(--bg-elev);
-		border-radius: var(--radius-sm);
-		padding: 7px 9px;
-		outline: none;
-		color: var(--text);
-	}
-	select:focus,
-	input[type='date']:focus {
-		border-color: var(--accent);
-	}
-	.date-row {
-		display: flex;
-		flex-direction: column;
-		gap: 7px;
-	}
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 5px;
-	}
-	.chips button {
-		font-size: 12px;
-		color: var(--text-dim);
-		background: var(--bg-elev);
-		border: 1px solid var(--border);
-		padding: 3px 9px;
-		border-radius: 20px;
-		transition: all 0.12s;
-	}
-	.chips button:hover {
-		border-color: var(--accent);
-		color: var(--text);
-	}
-	.chips button.clear:hover {
-		border-color: var(--danger);
-		color: var(--danger);
-	}
-	footer {
-		margin-top: auto;
-		padding-top: 8px;
-	}
-	.danger {
-		display: inline-flex;
-		align-items: center;
-		gap: 7px;
-		background: transparent;
-		border: 1px solid var(--border);
-		color: var(--danger);
-		padding: 7px 12px;
-		border-radius: var(--radius-sm);
-		transition: all 0.12s;
-	}
-	.danger:hover {
-		background: color-mix(in srgb, var(--danger) 10%, transparent);
-		border-color: var(--danger);
-	}
-	/* Full-width editor on phones (dismiss via the close button). */
-	@media (max-width: 640px) {
-		.drawer {
-			width: 100%;
-			max-width: 100%;
-		}
-	}
-	@keyframes fade {
+	@keyframes -global-fade {
 		from {
 			opacity: 0;
 		}
 	}
-	@keyframes slide {
+	@keyframes -global-slide {
 		from {
 			transform: translateX(20px);
 			opacity: 0;

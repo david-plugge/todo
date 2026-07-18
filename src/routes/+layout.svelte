@@ -1,6 +1,7 @@
 <script lang="ts">
+	import './layout.css';
 	import { onMount } from 'svelte';
-	import { base } from '$app/paths';
+	import { resolve } from '$app/paths';
 	import { isTauri } from '$lib/platform';
 	import '../app.css';
 
@@ -17,14 +18,18 @@
 		// install — reload once when the new worker takes over so the fresh shell
 		// is used (the old Workbox `autoUpdate`, minus a first-visit reload loop).
 		const hadController = !!navigator.serviceWorker.controller;
+
 		let reloading = false;
+
 		const onChange = () => {
 			if (!hadController || reloading) return;
+
 			reloading = true;
 			location.reload();
 		};
+
 		navigator.serviceWorker.addEventListener('controllerchange', onChange);
-		navigator.serviceWorker.register(`${base}/service-worker.js`, { type: 'module' });
+		navigator.serviceWorker.register(resolve('/service-worker.js'), { type: 'module' });
 
 		return () => navigator.serviceWorker.removeEventListener('controllerchange', onChange);
 	});

@@ -34,38 +34,49 @@
 	}
 </script>
 
-<div class="group">
-	<div class="group-head">
+<div class="flex flex-col gap-px">
+	<div
+		class="flex items-center justify-between px-2 pt-[2px] pb-1 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase"
+	>
 		<span>Projects</span>
-		<button class="add" aria-label="Add project" onclick={() => (adding = true)}>
+		<button
+			class="flex rounded-[5px] border-none bg-transparent p-[2px] text-faint hover:bg-hover hover:text-fg"
+			aria-label="Add project"
+			onclick={() => (adding = true)}
+		>
 			<Icon name="plus" size={14} />
 		</button>
 	</div>
 
 	{#each projects as p (p.id)}
 		<button
-			class="item"
-			class:active={isActive(p.id)}
+			class={[
+				'flex w-full items-center gap-2.5 rounded-soft border-none px-2 py-[7px] text-left transition-colors duration-100',
+				isActive(p.id) ? 'bg-accent/20 text-accent' : 'text-dim hover:bg-hover hover:text-fg',
+			]}
 			onclick={() => onselect({ kind: 'project', id: p.id })}
 		>
-			<span class="pdot" style="background:{p.color}"></span><span>{p.name}</span>
+			<span class="mx-[3.5px] h-[9px] w-[9px] flex-none rounded-full" style="background:{p.color}"
+			></span><span>{p.name}</span>
 		</button>
 	{/each}
 
 	{#if adding}
 		<form
-			class="new-project"
+			class="flex flex-col gap-[7px] px-2 py-1.5"
 			onsubmit={(e) => {
 				e.preventDefault();
 				createProject();
 			}}
 		>
-			<div class="swatches">
+			<div class="flex gap-[5px]">
 				{#each palette as c (c)}
 					<button
 						type="button"
-						class="swatch"
-						class:sel={color === c}
+						class={[
+							'h-4 w-4 rounded-full border-2 border-transparent p-0',
+							color === c && 'border-fg',
+						]}
 						style="background:{c}"
 						aria-label="Color {c}"
 						onclick={() => (color = c)}
@@ -73,6 +84,7 @@
 				{/each}
 			</div>
 			<input
+				class="rounded-soft border border-line-strong bg-bg px-2 py-1.5 outline-none focus:border-accent"
 				bind:value={name}
 				placeholder="Project name"
 				autofocus
@@ -87,95 +99,3 @@
 		</form>
 	{/if}
 </div>
-
-<style>
-	.group {
-		display: flex;
-		flex-direction: column;
-		gap: 1px;
-	}
-	.group-head {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding: 2px 8px 4px;
-		font-size: 11.5px;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.05em;
-		color: var(--text-faint);
-	}
-	.add {
-		background: transparent;
-		border: none;
-		color: var(--text-faint);
-		display: flex;
-		padding: 2px;
-		border-radius: 5px;
-	}
-	.add:hover {
-		background: var(--bg-hover);
-		color: var(--text);
-	}
-	.item {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		width: 100%;
-		text-align: left;
-		background: transparent;
-		border: none;
-		color: var(--text-dim);
-		padding: 7px 8px;
-		border-radius: var(--radius-sm);
-		transition:
-			background 0.1s,
-			color 0.1s;
-	}
-	.item:hover {
-		background: var(--bg-hover);
-		color: var(--text);
-	}
-	.item.active {
-		background: var(--accent-soft);
-		color: var(--accent);
-		font-weight: 550;
-	}
-	.pdot {
-		width: 9px;
-		height: 9px;
-		border-radius: 50%;
-		flex: none;
-		margin: 0 3.5px;
-	}
-	.new-project {
-		display: flex;
-		flex-direction: column;
-		gap: 7px;
-		padding: 6px 8px;
-	}
-	.swatches {
-		display: flex;
-		gap: 5px;
-	}
-	.swatch {
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		border: 2px solid transparent;
-		padding: 0;
-	}
-	.swatch.sel {
-		border-color: var(--text);
-	}
-	.new-project input {
-		border: 1px solid var(--border-strong);
-		background: var(--bg);
-		border-radius: var(--radius-sm);
-		padding: 6px 8px;
-		outline: none;
-	}
-	.new-project input:focus {
-		border-color: var(--accent);
-	}
-</style>

@@ -54,16 +54,20 @@
 
 <svelte:window onkeydown={onKey} />
 
-<div class="quick" data-tauri-drag-region>
+<div
+	class="flex h-screen flex-col justify-center gap-3 rounded-[14px] border border-line-strong bg-bg p-[14px] shadow-pop"
+	data-tauri-drag-region
+>
 	<form
 		onsubmit={(e) => {
 			e.preventDefault();
 			submit();
 		}}
 	>
-		<div class="input-row">
-			<span class="icon"><Icon name={saved ? 'check' : 'plus'} size={18} /></span>
+		<div class="flex items-center gap-2.5">
+			<span class="flex text-accent"><Icon name={saved ? 'check' : 'plus'} size={18} /></span>
 			<input
+				class="flex-1 border-none bg-transparent text-[18px] font-medium outline-none placeholder:font-normal placeholder:text-faint"
 				bind:this={el}
 				bind:value={title}
 				placeholder="Quick add a task…"
@@ -71,16 +75,20 @@
 				spellcheck="false"
 			/>
 		</div>
-		<div class="footer">
+		<div class="flex items-center justify-between pl-7">
 			<button
 				type="button"
-				class="toggle"
-				class:on={planToday}
+				class={[
+					'inline-flex items-center gap-[5px] rounded-[20px] border px-2.5 py-[3px] text-[12px]',
+					planToday
+						? 'border-accent/30 bg-accent-soft text-accent'
+						: 'border-line bg-elev text-dim',
+				]}
 				onclick={() => (planToday = !planToday)}
 			>
 				<Icon name="today" size={13} /> Today
 			</button>
-			<span class="hint">↵ to add · esc to dismiss</span>
+			<span class="text-[11.5px] text-faint">↵ to add · esc to dismiss</span>
 		</div>
 	</form>
 </div>
@@ -88,64 +96,5 @@
 <style>
 	:global(body) {
 		background: transparent;
-	}
-	.quick {
-		padding: 14px;
-		background: var(--bg);
-		border: 1px solid var(--border-strong);
-		border-radius: 14px;
-		box-shadow: var(--shadow-lg);
-		height: 100vh;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
-		gap: 12px;
-	}
-	.input-row {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-	}
-	.icon {
-		color: var(--accent);
-		display: flex;
-	}
-	input {
-		flex: 1;
-		border: none;
-		background: transparent;
-		outline: none;
-		font-size: 18px;
-		font-weight: 500;
-	}
-	input::placeholder {
-		color: var(--text-faint);
-		font-weight: 400;
-	}
-	.footer {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		padding-left: 28px;
-	}
-	.toggle {
-		display: inline-flex;
-		align-items: center;
-		gap: 5px;
-		font-size: 12px;
-		color: var(--text-dim);
-		background: var(--bg-elev);
-		border: 1px solid var(--border);
-		padding: 3px 10px;
-		border-radius: 20px;
-	}
-	.toggle.on {
-		color: var(--accent);
-		background: var(--accent-soft);
-		border-color: color-mix(in srgb, var(--accent) 30%, transparent);
-	}
-	.hint {
-		font-size: 11.5px;
-		color: var(--text-faint);
 	}
 </style>

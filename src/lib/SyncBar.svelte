@@ -17,15 +17,23 @@
 	);
 </script>
 
-<button class="syncbar" onclick={() => (open = true)}>
+<button
+	class="mt-auto flex w-full items-center gap-2 rounded-none border-t border-line bg-transparent pt-2.5 pr-2 pb-1 pl-2 text-dim transition-colors duration-100 hover:text-fg"
+	onclick={() => (open = true)}
+>
 	<span
-		class="dot"
-		class:off={!$authState.connected}
-		class:err={$authState.connected && $syncStatus.phase === 'error'}
-		class:busy={$authState.connected && $syncStatus.phase === 'syncing'}
+		class={[
+			'h-2 w-2 flex-none rounded-full',
+			!$authState.connected
+				? 'bg-faint'
+				: $syncStatus.phase === 'error'
+					? 'bg-danger'
+					: 'bg-accent',
+			$authState.connected && $syncStatus.phase === 'syncing' && 'busy',
+		]}
 	></span>
 	<Icon name="cloud" size={15} />
-	<span class="label">{label}</span>
+	<span class="text-[13px]">{label}</span>
 </button>
 
 {#if open}
@@ -33,40 +41,7 @@
 {/if}
 
 <style>
-	.syncbar {
-		margin-top: auto;
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		width: 100%;
-		background: transparent;
-		border: none;
-		border-top: 1px solid var(--border);
-		color: var(--text-dim);
-		padding: 10px 8px 4px;
-		border-radius: 0;
-		transition: color 0.1s;
-	}
-	.syncbar:hover {
-		color: var(--text);
-	}
-	.label {
-		font-size: 13px;
-	}
-	.dot {
-		width: 8px;
-		height: 8px;
-		border-radius: 50%;
-		background: var(--accent);
-		flex: none;
-	}
-	.dot.off {
-		background: var(--text-faint);
-	}
-	.dot.err {
-		background: var(--danger);
-	}
-	.dot.busy {
+	.busy {
 		animation: pulse 1s ease-in-out infinite;
 	}
 	@keyframes pulse {

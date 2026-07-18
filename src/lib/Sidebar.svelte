@@ -22,14 +22,22 @@
 	}
 </script>
 
-<nav class="sidebar">
-	<div class="brand"><span class="logo">✓</span> Todo</div>
+<nav
+	class="flex h-full w-[232px] flex-none flex-col gap-[18px] overflow-y-auto border-r border-line bg-elev px-2.5 py-[14px] max-[640px]:hidden"
+>
+	<div class="flex items-center gap-2 px-2 pt-1 pb-0.5 text-[15px] font-bold">
+		<span class="grid h-5 w-5 place-items-center rounded-[6px] bg-accent text-[13px] text-white"
+			>✓</span
+		> Todo
+	</div>
 
-	<div class="group">
+	<div class="flex flex-col gap-px">
 		{#each views as v (v.view)}
 			<button
-				class="item"
-				class:active={isActive(v.view)}
+				class={[
+					'flex w-full items-center gap-2.5 rounded-soft border-none px-2 py-[7px] text-left transition-colors duration-100',
+					isActive(v.view) ? 'bg-accent/20 text-accent' : 'text-dim hover:bg-hover hover:text-fg',
+				]}
 				onclick={() => onselect({ kind: 'view', view: v.view })}
 			>
 				<Icon name={v.icon} size={16} /><span>{v.label}</span>
@@ -41,72 +49,3 @@
 
 	<SyncBar />
 </nav>
-
-<style>
-	.sidebar {
-		width: 232px;
-		flex: none;
-		height: 100%;
-		background: var(--bg-elev);
-		border-right: 1px solid var(--border);
-		padding: 14px 10px;
-		display: flex;
-		flex-direction: column;
-		gap: 18px;
-		overflow-y: auto;
-	}
-	.brand {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		font-weight: 700;
-		font-size: 15px;
-		padding: 4px 8px 2px;
-	}
-	.logo {
-		width: 20px;
-		height: 20px;
-		display: grid;
-		place-items: center;
-		background: var(--accent);
-		color: #fff;
-		border-radius: 6px;
-		font-size: 13px;
-	}
-	.group {
-		display: flex;
-		flex-direction: column;
-		gap: 1px;
-	}
-	.item {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		width: 100%;
-		text-align: left;
-		background: transparent;
-		border: none;
-		color: var(--text-dim);
-		padding: 7px 8px;
-		border-radius: var(--radius-sm);
-		transition:
-			background 0.1s,
-			color 0.1s;
-	}
-	.item:hover {
-		background: var(--bg-hover);
-		color: var(--text);
-	}
-	.item.active {
-		background: var(--accent-soft);
-		color: var(--accent);
-		font-weight: 550;
-	}
-
-	/* On phones the sidebar is replaced by the bottom tab bar (BottomNav). */
-	@media (max-width: 640px) {
-		.sidebar {
-			display: none;
-		}
-	}
-</style>

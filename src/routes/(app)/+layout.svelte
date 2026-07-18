@@ -29,16 +29,8 @@
 	}
 </script>
 
-<div class="app">
+<div class="flex h-full w-full">
 	<Sidebar projects={$projects} {current} {onselect} />
 	{@render children()}
 	<BottomNav projects={$projects} {current} {onselect} />
 </div>
-
-<style>
-	.app {
-		display: flex;
-		height: 100%;
-		width: 100%;
-	}
-</style>
