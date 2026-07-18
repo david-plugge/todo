@@ -1,0 +1,16 @@
+node_modules
+dist
+dist-ssr
+
+# Generated / build artifacts
+src-tauri/target
+src-tauri/gen
+server/pb_migrations
+
+# Lockfiles
+pnpm-lock.yaml
+src-tauri/Cargo.lock
+
+# Not handled by prettier (rustfmt/taplo territory)
+*.rs
+*.toml

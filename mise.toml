@@ -1,0 +1,5 @@
+[settings]
+# Read tool versions from their native project files so each has a single
+# source of truth: node + pnpm from package.json (engines / devEngines),
+# rust from rust-toolchain.toml (also respected natively by rustup/cargo).
+idiomatic_version_file_enable_tools = ["node", "pnpm", "rust"]

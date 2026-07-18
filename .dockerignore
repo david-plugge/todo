@@ -1,0 +1,10 @@
+# Build context is the repo root (see compose.yml).
+# Keep it lean: exclude host build artifacts and things the image never needs.
+node_modules
+dist
+.git
+.vscode
+src-tauri
+server/pb_data
+server/types.d.ts
+**/.DS_Store
