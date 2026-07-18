@@ -43,8 +43,8 @@
 	}
 
 	const btnBase =
-		'inline-flex items-center justify-center gap-[7px] rounded-soft border px-3 py-[9px] font-[550] transition-all duration-[.12s] disabled:opacity-[.55]';
-	const errText = 'text-[13px] text-danger';
+		'inline-flex items-center justify-center gap-[7px] rounded-md border px-3 py-[9px] font-[550] transition-all duration-[.12s] disabled:opacity-[.55]';
+	const errText = 'text-[13px] text-destructive';
 </script>
 
 <div
@@ -53,7 +53,7 @@
 	role="presentation"
 ></div>
 <div
-	class="fixed top-1/2 left-1/2 z-[31] flex w-[380px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 flex-col gap-[14px] rounded-card border border-line bg-bg p-[18px] shadow-pop"
+	class="fixed top-1/2 left-1/2 z-[31] flex w-[380px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 flex-col gap-[14px] rounded-lg border border-border bg-background p-[18px] shadow-pop"
 	role="dialog"
 	aria-modal="true"
 	aria-label="Sync settings"
@@ -63,7 +63,7 @@
 			<Icon name="cloud" size={17} /> Sync
 		</h2>
 		<button
-			class="flex rounded-soft border-none bg-transparent p-1.5 text-dim hover:bg-hover hover:text-fg"
+			class="flex rounded-md border-none bg-transparent p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
 			aria-label="Close"
 			onclick={onclose}><Icon name="x" size={17} /></button
 		>
@@ -73,13 +73,13 @@
 		<p class="text-[14px]">
 			Connected as <strong>{$authState.email}</strong>
 		</p>
-		<p class="-mt-2 text-[12.5px] text-faint break-all">{getServerUrl()}</p>
+		<p class="-mt-2 text-[12.5px] text-muted-foreground/70 break-all">{getServerUrl()}</p>
 
-		<div class="flex items-center gap-2 text-[13px] text-dim">
+		<div class="flex items-center gap-2 text-[13px] text-muted-foreground">
 			<span
 				class={[
 					'h-2 w-2 flex-none rounded-full',
-					$syncStatus.phase === 'error' ? 'bg-danger' : 'bg-accent',
+					$syncStatus.phase === 'error' ? 'bg-destructive' : 'bg-primary',
 					$syncStatus.phase === 'syncing' && 'animate-[pulse_1s_ease-in-out_infinite]',
 				]}
 			></span>
@@ -94,14 +94,14 @@
 
 		<div class="flex gap-2">
 			<button
-				class={[btnBase, 'flex-1 border-line bg-elev text-fg enabled:hover:border-accent']}
+				class={[btnBase, 'flex-1 border-border bg-card text-foreground enabled:hover:border-primary']}
 				onclick={() => syncNow()}
 				disabled={$syncStatus.phase === 'syncing'}
 			>
 				<Icon name="refresh" size={14} /> Sync now
 			</button>
 			<button
-				class={[btnBase, 'flex-1 border-line bg-transparent text-fg enabled:hover:border-accent']}
+				class={[btnBase, 'flex-1 border-border bg-transparent text-foreground enabled:hover:border-primary']}
 				onclick={disconnect}
 			>
 				<Icon name="logout" size={14} /> Disconnect
@@ -111,11 +111,11 @@
 		<form onsubmit={connect} class="flex flex-col gap-3">
 			{#if !sameOrigin}
 				<label class="flex flex-col gap-[5px]">
-					<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-dim"
+					<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground"
 						>Server URL</span
 					>
 					<input
-						class="rounded-soft border border-line bg-elev px-2.5 py-2 text-[14px] text-fg outline-none focus:border-accent"
+						class="rounded-md border border-border bg-card px-2.5 py-2 text-[14px] text-foreground outline-none focus:border-primary"
 						bind:value={url}
 						type="url"
 						placeholder="https://todo.example.com"
@@ -124,18 +124,18 @@
 				</label>
 			{/if}
 			<label class="flex flex-col gap-[5px]">
-				<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-dim">Email</span>
+				<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Email</span>
 				<input
-					class="rounded-soft border border-line bg-elev px-2.5 py-2 text-[14px] text-fg outline-none focus:border-accent"
+					class="rounded-md border border-border bg-card px-2.5 py-2 text-[14px] text-foreground outline-none focus:border-primary"
 					bind:value={email}
 					type="email"
 					autocomplete="username"
 				/>
 			</label>
 			<label class="flex flex-col gap-[5px]">
-				<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-dim">Password</span>
+				<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Password</span>
 				<input
-					class="rounded-soft border border-line bg-elev px-2.5 py-2 text-[14px] text-fg outline-none focus:border-accent"
+					class="rounded-md border border-border bg-card px-2.5 py-2 text-[14px] text-foreground outline-none focus:border-primary"
 					bind:value={password}
 					type="password"
 					autocomplete="current-password"
@@ -143,13 +143,13 @@
 			</label>
 			{#if error}<p class={errText}>{error}</p>{/if}
 			<button
-				class={[btnBase, 'border-accent bg-accent text-white enabled:hover:brightness-105']}
+				class={[btnBase, 'border-primary bg-primary text-white enabled:hover:brightness-105']}
 				type="submit"
 				disabled={busy || !url || !email || !password}
 			>
 				{busy ? 'Connecting…' : 'Connect'}
 			</button>
-			<p class="m-0 text-[12px] leading-[1.45] text-faint">
+			<p class="m-0 text-[12px] leading-[1.45] text-muted-foreground/70">
 				Your tasks work offline without this. Connecting turns on sync across devices.
 			</p>
 		</form>

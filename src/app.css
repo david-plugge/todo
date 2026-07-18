@@ -1,42 +1,84 @@
-:root {
-	/* Neutral scale */
-	--bg: #ffffff;
-	--bg-elev: #f7f7f8;
-	--bg-hover: #f0f0f2;
-	--border: #e6e6e9;
-	--border-strong: #d5d5da;
-	--text: #1a1a1e;
-	--text-dim: #6b6b74;
-	--text-faint: #9a9aa3;
-	--accent: #6366f1;
-	--accent-soft: #eef0ff;
-	--danger: #e5484d;
-	--overdue: #e5484d;
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn-svelte/tailwind.css';
+@import '@fontsource-variable/inter';
 
-	--radius: 10px;
-	--radius-sm: 7px;
+/*
+ * Design tokens. Names follow shadcn-svelte's convention; values are the
+ * project's original indigo + neutral palette. Dark mode flips the values via
+ * the media query below, so utilities need no `dark:` variant. The @theme block
+ * further down maps each token to a Tailwind utility.
+ */
+:root {
+	color-scheme: light dark;
+
+	--radius: 0.625rem; /* 10px */
+
+	--font: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
+		Arial, sans-serif;
+
+	/* Base surfaces */
+	--background: #ffffff;
+	--foreground: #1a1a1e;
+	--card: #f7f7f8;
+	--card-foreground: #1a1a1e;
+	--popover: #f7f7f8;
+	--popover-foreground: #1a1a1e;
+
+	/* Brand */
+	--primary: #6366f1;
+	--primary-foreground: #ffffff;
+
+	/* Secondary / muted / hover(accent) */
+	--secondary: #f0f0f2;
+	--secondary-foreground: #1a1a1e;
+	--muted: #f7f7f8;
+	--muted-foreground: #6b6b74;
+	--accent: #f0f0f2;
+	--accent-foreground: #1a1a1e;
+
+	/* Destructive (original danger / overdue) */
+	--destructive: #e5484d;
+	--destructive-foreground: #ffffff;
+
+	/* Lines / inputs / focus ring */
+	--border: #e6e6e9;
+	--input: #e6e6e9;
+	--ring: #6366f1;
+
+	/* Extensions kept from the original theme (no shadcn equivalent) */
+	--border-strong: #d5d5da;
 	--shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
 	--shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.16);
-
-	--font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-
-	color-scheme: light dark;
 }
 
 @media (prefers-color-scheme: dark) {
 	:root {
-		--bg: #131316;
-		--bg-elev: #1b1b1f;
-		--bg-hover: #24242a;
+		--background: #131316;
+		--foreground: #ececf0;
+		--card: #1b1b1f;
+		--card-foreground: #ececf0;
+		--popover: #1b1b1f;
+		--popover-foreground: #ececf0;
+
+		--primary: #7c7ff5;
+		--primary-foreground: #ffffff;
+
+		--secondary: #24242a;
+		--secondary-foreground: #ececf0;
+		--muted: #1b1b1f;
+		--muted-foreground: #a0a0aa;
+		--accent: #24242a;
+		--accent-foreground: #ececf0;
+
+		--destructive: #ff6369;
+		--destructive-foreground: #ffffff;
+
 		--border: #2a2a30;
+		--input: #2a2a30;
+		--ring: #7c7ff5;
+
 		--border-strong: #3a3a42;
-		--text: #ececf0;
-		--text-dim: #a0a0aa;
-		--text-faint: #6c6c76;
-		--accent: #7c7ff5;
-		--accent-soft: #232449;
-		--danger: #ff6369;
-		--overdue: #ff6369;
 		--shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.4);
 		--shadow-lg: 0 8px 40px rgba(0, 0, 0, 0.6);
 	}
@@ -54,9 +96,6 @@ body,
 }
 
 body {
-	font-family: var(--font);
-	background: var(--bg);
-	color: var(--text);
 	font-size: 14px;
 	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
@@ -78,10 +117,87 @@ textarea {
 }
 
 ::selection {
-	background: var(--accent-soft);
+	background: color-mix(in oklab, var(--primary) 14%, transparent);
 }
 
 * {
 	scrollbar-width: thin;
 	scrollbar-color: var(--border-strong) transparent;
+}
+
+/*
+ * Expose the tokens above as Tailwind utilities. Values stay in :root (single
+ * source of truth, incl. the dark media query); this just references them, so
+ * `bg-background`, `text-muted-foreground`, `border-border`, `rounded-lg`, etc.
+ * resolve to the live token and flip with light/dark automatically.
+ */
+@theme {
+	/* Drop Tailwind's entire default color palette — the theme is explicit-only,
+	 * so only the tokens declared below produce color utilities. */
+	--color-*: initial;
+
+	/* Primitives we still rely on (kept explicit, since the reset above nukes
+	 * even these). */
+	--color-transparent: transparent;
+	--color-current: currentColor;
+	--color-inherit: inherit;
+	--color-white: #fff;
+	--color-black: #000;
+
+	/* Surfaces */
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+
+	/* Brand */
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+
+	/* Secondary / muted / accent (hover) */
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+
+	/* Semantic */
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+
+	/* Lines / inputs / focus ring */
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+
+	/* Extension: stronger divider line (no shadcn equivalent) */
+	--color-border-strong: var(--border-strong);
+
+	/* Radii (shadcn scale, derived from --radius) */
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+
+	/* Shadows */
+	--shadow-card: var(--shadow);
+	--shadow-pop: var(--shadow-lg);
+
+	/* Font */
+	--font-sans: var(--font);
+}
+
+@layer base {
+	* {
+		@apply border-border outline-ring/50;
+	}
+	body {
+		@apply bg-background text-foreground;
+	}
+	html {
+		@apply font-sans;
+	}
 }

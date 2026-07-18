@@ -1,5 +1,4 @@
 <script lang="ts">
-	import './layout.css';
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { isTauri } from '$lib/platform';

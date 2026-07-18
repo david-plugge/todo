@@ -179,29 +179,29 @@
 
 {#snippet dateCalendar(selected: ISODate | null, pick: (iso: ISODate) => void)}
 	<div
-		class="w-[290px] overflow-hidden rounded-card border border-line-strong bg-elev shadow-pop"
+		class="w-[290px] overflow-hidden rounded-lg border border-border-strong bg-card shadow-pop"
 	>
 		<div class="flex flex-col py-1.5">
 			{#each quickDates as q (q.label)}
 				<button
 					type="button"
-					class="flex items-center gap-3 px-3 py-1.5 text-left text-[14px] text-fg hover:bg-hover"
+					class="flex items-center gap-3 px-3 py-1.5 text-left text-[14px] text-foreground hover:bg-accent"
 					onclick={() => pick(q.date)}
 				>
 					<span class="flex" style="color:{q.color}"><Icon name={q.icon} size={17} /></span>
 					<span class="flex-1">{q.label}</span>
-					<span class="text-[13px] text-faint">{q.hint}</span>
+					<span class="text-[13px] text-muted-foreground/70">{q.hint}</span>
 				</button>
 			{/each}
 		</div>
 
-		<div class="border-t border-line px-3 pt-2.5 pb-3">
+		<div class="border-t border-border px-3 pt-2.5 pb-3">
 			<div class="mb-1.5 flex items-center justify-between">
 				<span class="text-[13px] font-semibold">{monthLabel}</span>
 				<div class="flex gap-0.5">
 					<button
 						type="button"
-						class="flex rounded-soft p-1 text-dim hover:bg-hover hover:text-fg"
+						class="flex rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
 						aria-label="Previous month"
 						onclick={() => shiftMonth(-1)}
 					>
@@ -209,7 +209,7 @@
 					</button>
 					<button
 						type="button"
-						class="flex rounded-soft p-1 text-dim hover:bg-hover hover:text-fg"
+						class="flex rounded-md p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
 						aria-label="Next month"
 						onclick={() => shiftMonth(1)}
 					>
@@ -219,7 +219,7 @@
 			</div>
 			<div class="grid grid-cols-7 gap-y-0.5 text-center">
 				{#each weekdays as w, i (i)}
-					<span class="py-1 text-[11px] font-medium text-faint">{w}</span>
+					<span class="py-1 text-[11px] font-medium text-muted-foreground/70">{w}</span>
 				{/each}
 				{#each monthCells as c (c.iso)}
 					<button
@@ -227,12 +227,12 @@
 						class={[
 							'mx-auto flex h-8 w-8 items-center justify-center rounded-full text-[13px] transition-colors',
 							selected === c.iso
-								? 'bg-accent text-white'
+								? 'bg-primary text-white'
 								: c.iso === today
-									? 'font-semibold text-accent hover:bg-hover'
+									? 'font-semibold text-primary hover:bg-accent'
 									: c.inMonth
-										? 'text-fg hover:bg-hover'
-										: 'text-faint hover:bg-hover',
+										? 'text-foreground hover:bg-accent'
+										: 'text-muted-foreground/70 hover:bg-accent',
 						]}
 						onclick={() => pick(c.iso)}
 					>
@@ -248,10 +248,10 @@
 	<button
 		type="button"
 		class={[
-			'inline-flex items-center gap-1.5 rounded-soft border px-2.5 py-1.5 text-[13px] transition-colors',
+			'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[13px] transition-colors',
 			value || open === field
-				? 'border-accent/40 bg-accent-soft text-accent'
-				: 'border-line-strong bg-transparent text-dim hover:bg-hover hover:text-fg',
+				? 'border-primary/40 bg-primary/10 text-primary'
+				: 'border-border-strong bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
 		]}
 		onclick={() => openDate(field)}
 	>
@@ -259,7 +259,7 @@
 		{value ? relativeLabel(value) : emptyLabel}
 		{#if value}
 			<span
-				class="-mr-1 ml-0.5 flex rounded-full p-0.5 hover:bg-accent/20"
+				class="-mr-1 ml-0.5 flex rounded-full p-0.5 hover:bg-primary/20"
 				role="button"
 				tabindex="-1"
 				aria-label="Clear {emptyLabel}"
@@ -279,7 +279,7 @@
 
 <div
 	bind:this={card}
-	class="mx-auto mt-4 flex w-[560px] flex-col rounded-[14px] border border-line-strong bg-bg"
+	class="mx-auto mt-4 flex w-[560px] flex-col rounded-[14px] border border-border-strong bg-background"
 	data-tauri-drag-region
 >
 	<!-- Title + description + field pills -->
@@ -287,7 +287,7 @@
 		<input
 			bind:this={titleEl}
 			bind:value={title}
-			class="border-none bg-transparent text-[24px] font-medium leading-tight outline-none placeholder:font-normal placeholder:text-faint"
+			class="border-none bg-transparent text-[24px] font-medium leading-tight outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
 			placeholder="Task name"
 			autocomplete="off"
 			spellcheck="false"
@@ -300,7 +300,7 @@
 		/>
 		<input
 			bind:value={notes}
-			class="border-none bg-transparent text-[14px] outline-none placeholder:text-faint"
+			class="border-none bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/70"
 			placeholder="Description"
 			autocomplete="off"
 			spellcheck="false"
@@ -334,11 +334,11 @@
 	</div>
 
 	<!-- Footer: project picker + actions -->
-	<div class="flex items-center justify-between border-t border-line px-[18px] py-2.5">
+	<div class="flex items-center justify-between border-t border-border px-[18px] py-2.5">
 		<div bind:this={projWrap} class="relative">
 			<button
 				type="button"
-				class="inline-flex items-center gap-1.5 rounded-soft px-2 py-1.5 text-[13px] font-medium text-dim hover:bg-hover hover:text-fg"
+				class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
 				onclick={() => (open = open === 'project' ? null : 'project')}
 			>
 				{#if selectedProject}
@@ -352,13 +352,13 @@
 
 			{#if open === 'project'}
 				<div
-					class="absolute top-full left-0 z-50 mt-2 max-h-56 w-56 overflow-y-auto rounded-card border border-line-strong bg-elev py-1.5 shadow-pop"
+					class="absolute top-full left-0 z-50 mt-2 max-h-56 w-56 overflow-y-auto rounded-lg border border-border-strong bg-card py-1.5 shadow-pop"
 				>
 					<button
 						type="button"
 						class={[
-							'flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[14px] hover:bg-hover',
-							projectId === null ? 'text-accent' : 'text-fg',
+							'flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[14px] hover:bg-accent',
+							projectId === null ? 'text-primary' : 'text-foreground',
 						]}
 						onclick={() => pickProject(null)}
 					>
@@ -368,8 +368,8 @@
 						<button
 							type="button"
 							class={[
-								'flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[14px] hover:bg-hover',
-								projectId === p.id ? 'text-accent' : 'text-fg',
+								'flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-[14px] hover:bg-accent',
+								projectId === p.id ? 'text-primary' : 'text-foreground',
 							]}
 							onclick={() => pickProject(p.id)}
 						>
@@ -384,14 +384,14 @@
 		<div class="flex items-center gap-2">
 			<button
 				type="button"
-				class="rounded-soft bg-hover px-3.5 py-1.5 text-[13px] font-medium text-dim hover:text-fg"
+				class="rounded-md bg-accent px-3.5 py-1.5 text-[13px] font-medium text-muted-foreground hover:text-foreground"
 				onclick={cancel}
 			>
 				Cancel
 			</button>
 			<button
 				type="button"
-				class="rounded-soft bg-accent px-3.5 py-1.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-40"
+				class="rounded-md bg-primary px-3.5 py-1.5 text-[13px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-default disabled:opacity-40"
 				disabled={!title.trim()}
 				onclick={submit}
 			>

@@ -23,10 +23,10 @@
 </script>
 
 <nav
-	class="flex h-full w-[232px] flex-none flex-col gap-[18px] overflow-y-auto border-r border-line bg-elev px-2.5 py-[14px] max-[640px]:hidden"
+	class="flex h-full w-[232px] flex-none flex-col gap-[18px] overflow-y-auto border-r border-border bg-card px-2.5 py-[14px] max-[640px]:hidden"
 >
 	<div class="flex items-center gap-2 px-2 pt-1 pb-0.5 text-[15px] font-bold">
-		<span class="grid h-5 w-5 place-items-center rounded-[6px] bg-accent text-[13px] text-white"
+		<span class="grid h-5 w-5 place-items-center rounded-[6px] bg-primary text-[13px] text-white"
 			>✓</span
 		> Todo
 	</div>
@@ -35,8 +35,8 @@
 		{#each views as v (v.view)}
 			<button
 				class={[
-					'flex w-full items-center gap-2.5 rounded-soft border-none px-2 py-[7px] text-left transition-colors duration-100',
-					isActive(v.view) ? 'bg-accent/20 text-accent' : 'text-dim hover:bg-hover hover:text-fg',
+					'flex w-full items-center gap-2.5 rounded-md border-none px-2 py-[7px] text-left transition-colors duration-100',
+					isActive(v.view) ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
 				]}
 				onclick={() => onselect({ kind: 'view', view: v.view })}
 			>

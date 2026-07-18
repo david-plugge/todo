@@ -57,11 +57,11 @@
 	const today = todayISO();
 
 	const fieldLabel =
-		'flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.04em] text-dim';
+		'flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground';
 	const control =
-		'rounded-soft border border-line bg-elev px-[9px] py-[7px] text-fg outline-none focus:border-accent';
+		'rounded-md border border-border bg-card px-[9px] py-[7px] text-foreground outline-none focus:border-primary';
 	const chipBtn =
-		'rounded-[20px] border border-line bg-elev px-[9px] py-[3px] text-[12px] text-dim transition-all duration-[.12s]';
+		'rounded-[20px] border border-border bg-card px-[9px] py-[3px] text-[12px] text-muted-foreground transition-all duration-[.12s]';
 </script>
 
 <div
@@ -70,7 +70,7 @@
 	role="presentation"
 ></div>
 <div
-	class="fixed inset-y-0 right-0 z-[21] flex w-[380px] max-w-[92vw] flex-col gap-[14px] overflow-y-auto border-l border-line bg-bg p-4 shadow-pop [animation:slide_0.18s_cubic-bezier(0.2,0.8,0.2,1)] max-[640px]:w-full max-[640px]:max-w-full"
+	class="fixed inset-y-0 right-0 z-[21] flex w-[380px] max-w-[92vw] flex-col gap-[14px] overflow-y-auto border-l border-border bg-background p-4 shadow-pop [animation:slide_0.18s_cubic-bezier(0.2,0.8,0.2,1)] max-[640px]:w-full max-[640px]:max-w-full"
 	role="dialog"
 	aria-modal="true"
 	aria-label="Edit task"
@@ -80,8 +80,8 @@
 			class={[
 				'inline-flex items-center gap-2 rounded-[20px] border py-[5px] pr-3 pl-2 transition-all duration-[.12s]',
 				task.completed
-					? 'border-accent bg-accent text-white'
-					: 'border-line-strong bg-transparent text-dim hover:border-accent hover:text-fg',
+					? 'border-primary bg-primary text-white'
+					: 'border-border-strong bg-transparent text-muted-foreground hover:border-primary hover:text-foreground',
 			]}
 			onclick={() => toggleComplete(task)}
 		>
@@ -89,7 +89,7 @@
 			<span>{task.completed ? 'Completed' : 'Mark complete'}</span>
 		</button>
 		<button
-			class="flex rounded-soft border-0 bg-transparent p-1.5 text-dim hover:bg-hover hover:text-fg"
+			class="flex rounded-md border-0 bg-transparent p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
 			aria-label="Close"
 			onclick={onclose}><Icon name="x" size={17} /></button
 		>
@@ -103,7 +103,7 @@
 	/>
 
 	<textarea
-		class="resize-y rounded-soft border border-line bg-elev px-2.5 py-2 leading-normal outline-none focus:border-accent"
+		class="resize-y rounded-md border border-border bg-card px-2.5 py-2 leading-normal outline-none focus:border-primary"
 		bind:value={notes}
 		oninput={saveText}
 		placeholder="Notes…"
@@ -127,7 +127,7 @@
 	<div class="flex flex-col gap-[7px]">
 		<label class={fieldLabel} for="editor-planned"
 			><Icon name="calendar" size={13} /> Planned {#if plannedDate}<span
-					class="font-medium tracking-normal normal-case text-accent"
+					class="font-medium tracking-normal normal-case text-primary"
 					>· {relativeLabel(plannedDate)}</span
 				>{/if}</label
 		>
@@ -141,19 +141,19 @@
 			/>
 			<div class="flex flex-wrap gap-[5px]">
 				<button
-					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					class={[chipBtn, 'hover:border-primary hover:text-foreground']}
 					onclick={() => setPlanned(today)}>Today</button
 				>
 				<button
-					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					class={[chipBtn, 'hover:border-primary hover:text-foreground']}
 					onclick={() => setPlanned(addDaysISO(today, 1))}>Tomorrow</button
 				>
 				<button
-					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					class={[chipBtn, 'hover:border-primary hover:text-foreground']}
 					onclick={() => setPlanned(addDaysISO(today, 7))}>Next week</button
 				>
 				{#if plannedDate}<button
-						class={[chipBtn, 'hover:border-danger hover:text-danger']}
+						class={[chipBtn, 'hover:border-destructive hover:text-destructive']}
 						onclick={() => setPlanned(null)}>Clear</button
 					>{/if}
 			</div>
@@ -163,7 +163,7 @@
 	<div class="flex flex-col gap-[7px]">
 		<label class={fieldLabel} for="editor-due"
 			><Icon name="flag" size={13} /> Due {#if dueDate}<span
-					class="font-medium tracking-normal normal-case text-accent"
+					class="font-medium tracking-normal normal-case text-primary"
 					>· {relativeLabel(dueDate)}</span
 				>{/if}</label
 		>
@@ -176,19 +176,19 @@
 				onchange={(e) => setDue(e.currentTarget.value || null)}
 			/>
 			<div class="flex flex-wrap gap-[5px]">
-				<button class={[chipBtn, 'hover:border-accent hover:text-fg']} onclick={() => setDue(today)}
+				<button class={[chipBtn, 'hover:border-primary hover:text-foreground']} onclick={() => setDue(today)}
 					>Today</button
 				>
 				<button
-					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					class={[chipBtn, 'hover:border-primary hover:text-foreground']}
 					onclick={() => setDue(addDaysISO(today, 1))}>Tomorrow</button
 				>
 				<button
-					class={[chipBtn, 'hover:border-accent hover:text-fg']}
+					class={[chipBtn, 'hover:border-primary hover:text-foreground']}
 					onclick={() => setDue(addDaysISO(today, 7))}>Next week</button
 				>
 				{#if dueDate}<button
-						class={[chipBtn, 'hover:border-danger hover:text-danger']}
+						class={[chipBtn, 'hover:border-destructive hover:text-destructive']}
 						onclick={() => setDue(null)}>Clear</button
 					>{/if}
 			</div>
@@ -197,7 +197,7 @@
 
 	<footer class="mt-auto pt-2">
 		<button
-			class="inline-flex items-center gap-[7px] rounded-soft border border-line bg-transparent px-3 py-[7px] text-danger transition-all duration-[.12s] hover:border-danger hover:bg-danger/10"
+			class="inline-flex items-center gap-[7px] rounded-md border border-border bg-transparent px-3 py-[7px] text-destructive transition-all duration-[.12s] hover:border-destructive hover:bg-destructive/10"
 			onclick={remove}><Icon name="trash" size={15} /> Delete task</button
 		>
 	</footer>

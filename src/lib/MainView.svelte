@@ -117,7 +117,7 @@
 				<Icon name={meta.icon} size={20} />
 				{meta.title}
 			</h1>
-			<span class="rounded-[20px] border border-line bg-elev px-[9px] py-px text-[13px] text-faint"
+			<span class="rounded-[20px] border border-border bg-card px-[9px] py-px text-[13px] text-muted-foreground/70"
 				>{tasks.length}</span
 			>
 		</header>
@@ -125,7 +125,7 @@
 		<Composer projectId={meta.projectId} plannedDate={meta.planned} />
 
 		{#if tasks.length === 0 && completedTasks.length === 0}
-			<p class="px-1 py-6 text-faint">Nothing here. Add your first task above.</p>
+			<p class="px-1 py-6 text-muted-foreground/70">Nothing here. Add your first task above.</p>
 		{:else if meta.manual}
 			<section
 				class="flex flex-col gap-0.5 outline-none"
@@ -156,9 +156,9 @@
 		{/if}
 
 		{#if completedTasks.length > 0}
-			<section class="mt-1.5 flex flex-col gap-0.5 border-t border-line pt-3">
+			<section class="mt-1.5 flex flex-col gap-0.5 border-t border-border pt-3">
 				<h2
-					class="mt-0 mr-0 mb-1 ml-2.5 text-[12px] font-semibold tracking-[0.04em] text-faint uppercase"
+					class="mt-0 mr-0 mb-1 ml-2.5 text-[12px] font-semibold tracking-[0.04em] text-muted-foreground/70 uppercase"
 				>
 					Completed
 				</h2>

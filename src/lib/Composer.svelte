@@ -22,19 +22,19 @@
 </script>
 
 <form
-	class="group flex items-center gap-2 rounded-card border border-line bg-elev px-3 py-2.5 transition-colors duration-[.12s] focus-within:border-accent focus-within:bg-bg"
+	class="group flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2.5 transition-colors duration-[.12s] focus-within:border-primary focus-within:bg-background"
 	onsubmit={(e) => {
 		e.preventDefault();
 		submit();
 	}}
 >
-	<span class="flex text-faint group-focus-within:text-accent"><Icon name="plus" size={16} /></span>
+	<span class="flex text-muted-foreground/70 group-focus-within:text-primary"><Icon name="plus" size={16} /></span>
 	<input
 		bind:this={el}
 		bind:value={title}
 		{placeholder}
 		autocomplete="off"
 		spellcheck="false"
-		class="flex-1 border-none bg-transparent p-0 outline-none placeholder:text-faint"
+		class="flex-1 border-none bg-transparent p-0 outline-none placeholder:text-muted-foreground/70"
 	/>
 </form>

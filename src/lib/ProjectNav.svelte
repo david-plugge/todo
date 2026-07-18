@@ -36,11 +36,11 @@
 
 <div class="flex flex-col gap-px">
 	<div
-		class="flex items-center justify-between px-2 pt-[2px] pb-1 text-[11.5px] font-semibold tracking-[0.05em] text-faint uppercase"
+		class="flex items-center justify-between px-2 pt-[2px] pb-1 text-[11.5px] font-semibold tracking-[0.05em] text-muted-foreground/70 uppercase"
 	>
 		<span>Projects</span>
 		<button
-			class="flex rounded-[5px] border-none bg-transparent p-[2px] text-faint hover:bg-hover hover:text-fg"
+			class="flex rounded-[5px] border-none bg-transparent p-[2px] text-muted-foreground/70 hover:bg-accent hover:text-foreground"
 			aria-label="Add project"
 			onclick={() => (adding = true)}
 		>
@@ -51,8 +51,8 @@
 	{#each projects as p (p.id)}
 		<button
 			class={[
-				'flex w-full items-center gap-2.5 rounded-soft border-none px-2 py-[7px] text-left transition-colors duration-100',
-				isActive(p.id) ? 'bg-accent/20 text-accent' : 'text-dim hover:bg-hover hover:text-fg',
+				'flex w-full items-center gap-2.5 rounded-md border-none px-2 py-[7px] text-left transition-colors duration-100',
+				isActive(p.id) ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
 			]}
 			onclick={() => onselect({ kind: 'project', id: p.id })}
 		>
@@ -75,7 +75,7 @@
 						type="button"
 						class={[
 							'h-4 w-4 rounded-full border-2 border-transparent p-0',
-							color === c && 'border-fg',
+							color === c && 'border-foreground',
 						]}
 						style="background:{c}"
 						aria-label="Color {c}"
@@ -84,7 +84,7 @@
 				{/each}
 			</div>
 			<input
-				class="rounded-soft border border-line-strong bg-bg px-2 py-1.5 outline-none focus:border-accent"
+				class="rounded-md border border-border-strong bg-background px-2 py-1.5 outline-none focus:border-primary"
 				bind:value={name}
 				placeholder="Project name"
 				autofocus

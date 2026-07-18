@@ -34,7 +34,7 @@
 	}
 
 	const tab =
-		'flex flex-1 flex-col items-center gap-[3px] border-none bg-transparent px-[2px] pt-2 pb-[7px] text-[10.5px] font-medium text-faint transition-colors duration-100 active:bg-hover';
+		'flex flex-1 flex-col items-center gap-[3px] border-none bg-transparent px-[2px] pt-2 pb-[7px] text-[10.5px] font-medium text-muted-foreground/70 transition-colors duration-100 active:bg-accent';
 </script>
 
 {#if sheetOpen}
@@ -44,13 +44,13 @@
 		role="presentation"
 	></div>
 	<div
-		class="fixed inset-x-0 bottom-0 z-[17] hidden max-h-[75vh] flex-col gap-[14px] overflow-y-auto rounded-t-[16px] border-t border-line bg-bg px-[14px] pt-2 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-pop animate-[slideup_0.2s_cubic-bezier(0.2,0.8,0.2,1)] max-[640px]:flex"
+		class="fixed inset-x-0 bottom-0 z-[17] hidden max-h-[75vh] flex-col gap-[14px] overflow-y-auto rounded-t-[16px] border-t border-border bg-background px-[14px] pt-2 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-pop animate-[slideup_0.2s_cubic-bezier(0.2,0.8,0.2,1)] max-[640px]:flex"
 		role="dialog"
 		aria-modal="true"
 		aria-label="Projects"
 	>
 		<div
-			class="mx-auto my-[2px] h-1 w-9 flex-none rounded-[2px] bg-line-strong"
+			class="mx-auto my-[2px] h-1 w-9 flex-none rounded-[2px] bg-border-strong"
 			aria-hidden="true"
 		></div>
 		<ProjectNav {projects} {current} onselect={pickFromSheet} />
@@ -59,16 +59,16 @@
 {/if}
 
 <nav
-	class="fixed inset-x-0 bottom-0 z-[15] hidden border-t border-line bg-elev pb-[env(safe-area-inset-bottom)] max-[640px]:flex"
+	class="fixed inset-x-0 bottom-0 z-[15] hidden border-t border-border bg-card pb-[env(safe-area-inset-bottom)] max-[640px]:flex"
 	aria-label="Main"
 >
 	{#each views as v (v.view)}
-		<button class={[tab, isView(v.view) && 'text-accent']} onclick={() => pickView(v.view)}>
+		<button class={[tab, isView(v.view) && 'text-primary']} onclick={() => pickView(v.view)}>
 			<Icon name={v.icon} size={21} /><span>{v.label}</span>
 		</button>
 	{/each}
 	<button
-		class={[tab, current.kind === 'project' && 'text-accent']}
+		class={[tab, current.kind === 'project' && 'text-primary']}
 		aria-haspopup="dialog"
 		aria-expanded={sheetOpen}
 		onclick={() => (sheetOpen = true)}

@@ -18,17 +18,17 @@
 </script>
 
 <button
-	class="mt-auto flex w-full items-center gap-2 rounded-none border-t border-line bg-transparent pt-2.5 pr-2 pb-1 pl-2 text-dim transition-colors duration-100 hover:text-fg"
+	class="mt-auto flex w-full items-center gap-2 rounded-none border-t border-border bg-transparent pt-2.5 pr-2 pb-1 pl-2 text-muted-foreground transition-colors duration-100 hover:text-foreground"
 	onclick={() => (open = true)}
 >
 	<span
 		class={[
 			'h-2 w-2 flex-none rounded-full',
 			!$authState.connected
-				? 'bg-faint'
+				? 'bg-muted-foreground/70'
 				: $syncStatus.phase === 'error'
-					? 'bg-danger'
-					: 'bg-accent',
+					? 'bg-destructive'
+					: 'bg-primary',
 			$authState.connected && $syncStatus.phase === 'syncing' && 'busy',
 		]}
 	></span>
