@@ -1,0 +1,87 @@
+name: CI
+
+# Runs on every PR (and on pushes to main so the default branch stays green).
+# Three independent checks: the web app, the Docker image, and the desktop app.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A newer commit on the same branch/PR cancels the older, still-running check.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Web app: formatting, type/svelte-check, and a production build ──────────
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.13.1 # matches devEngines.packageManager in package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Type & Svelte check
+        run: pnpm check
+
+      - name: Build
+        run: pnpm build
+
+  # ── Docker: make sure the image still builds (no push) ──────────────────────
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true # build the amd64 image locally to validate the Dockerfile
+          build-args: |
+            PB_VERSION=0.39.7
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Desktop: make sure the Tauri app still compiles and bundles ─────────────
+  tauri:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.13.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        run: rustup show # installs the channel pinned in rust-toolchain.toml
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: pnpm install --frozen-lockfile
+
+      # No tagName/releaseId → tauri-action just builds the app (no release,
+      # no upload). Builds for the host arch (Apple Silicon) as a smoke test.
+      - uses: tauri-apps/tauri-action@v0
