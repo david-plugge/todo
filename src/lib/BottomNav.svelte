@@ -3,6 +3,7 @@
 	import Icon from './Icon.svelte';
 	import ProjectNav from './ProjectNav.svelte';
 	import SyncBar from './SyncBar.svelte';
+	import * as Drawer from '$lib/components/ui/drawer/index.js';
 
 	let {
 		projects,
@@ -37,26 +38,14 @@
 		'flex flex-1 flex-col items-center gap-[3px] border-none bg-transparent px-[2px] pt-2 pb-[7px] text-[10.5px] font-medium text-muted-foreground/70 transition-colors duration-100 active:bg-accent';
 </script>
 
-{#if sheetOpen}
-	<div
-		class="fixed inset-0 z-[16] hidden animate-[fade_0.15s_ease] bg-black/28 max-[640px]:block"
-		onclick={() => (sheetOpen = false)}
-		role="presentation"
-	></div>
-	<div
-		class="fixed inset-x-0 bottom-0 z-[17] hidden max-h-[75vh] flex-col gap-[14px] overflow-y-auto rounded-t-[16px] border-t border-border bg-background px-[14px] pt-2 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-pop animate-[slideup_0.2s_cubic-bezier(0.2,0.8,0.2,1)] max-[640px]:flex"
-		role="dialog"
-		aria-modal="true"
-		aria-label="Projects"
-	>
-		<div
-			class="mx-auto my-[2px] h-1 w-9 flex-none rounded-[2px] bg-border-strong"
-			aria-hidden="true"
-		></div>
+<Drawer.Root bind:open={sheetOpen}>
+	<Drawer.Content class="gap-[14px] overflow-y-auto">
+		<Drawer.Title class="sr-only">Projects</Drawer.Title>
+		<Drawer.Description class="sr-only">Switch to a project or view</Drawer.Description>
 		<ProjectNav {projects} {current} onselect={pickFromSheet} />
 		<SyncBar />
-	</div>
-{/if}
+	</Drawer.Content>
+</Drawer.Root>
 
 <nav
 	class="fixed inset-x-0 bottom-0 z-[15] hidden border-t border-border bg-card pb-[env(safe-area-inset-bottom)] max-[640px]:flex"
@@ -76,19 +65,3 @@
 		<Icon name="projects" size={21} /><span>Projects</span>
 	</button>
 </nav>
-
-<style>
-	/* Keyframes can't be expressed as utilities; kept global so the Tailwind
-	 * animate-[...] utilities can reference them (Svelte scopes keyframes
-	 * otherwise). */
-	@keyframes -global-fade {
-		from {
-			opacity: 0;
-		}
-	}
-	@keyframes -global-slideup {
-		from {
-			transform: translateY(100%);
-		}
-	}
-</style>

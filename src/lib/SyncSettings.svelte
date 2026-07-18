@@ -2,8 +2,14 @@
 	import { authState, getServerUrl, setServerUrl, isSameOriginServer, login, logout } from './pb';
 	import { syncStatus, startSync, stopSync, syncNow } from './sync';
 	import Icon from './Icon.svelte';
+	import * as Dialog from '$lib/components/ui/dialog/index.js';
+	import { Button } from '$lib/components/ui/button/index.js';
+	import { Input } from '$lib/components/ui/input/index.js';
+	import * as Field from '$lib/components/ui/field/index.js';
 
 	let { onclose }: { onclose: () => void } = $props();
+
+	let open = $state(true);
 
 	const sameOrigin = isSameOriginServer();
 	let url = $state(getServerUrl());
@@ -42,126 +48,96 @@
 		return `${Math.round(s / 3600)}h ago`;
 	}
 
-	const btnBase =
-		'inline-flex items-center justify-center gap-[7px] rounded-md border px-3 py-[9px] font-[550] transition-all duration-[.12s] disabled:opacity-[.55]';
 	const errText = 'text-[13px] text-destructive';
 </script>
 
-<div
-	class="fixed inset-0 z-30 bg-black/28 animate-[fade_0.15s_ease]"
-	onclick={onclose}
-	role="presentation"
-></div>
-<div
-	class="fixed top-1/2 left-1/2 z-[31] flex w-[380px] max-w-[92vw] -translate-x-1/2 -translate-y-1/2 flex-col gap-[14px] rounded-lg border border-border bg-background p-[18px] shadow-pop"
-	role="dialog"
-	aria-modal="true"
-	aria-label="Sync settings"
+<Dialog.Root
+	bind:open
+	onOpenChange={(o) => {
+		if (!o) onclose();
+	}}
 >
-	<header class="flex items-center justify-between">
-		<h2 class="flex items-center gap-2 text-[16px] font-[650]">
-			<Icon name="cloud" size={17} /> Sync
-		</h2>
-		<button
-			class="flex rounded-md border-none bg-transparent p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground"
-			aria-label="Close"
-			onclick={onclose}><Icon name="x" size={17} /></button
-		>
-	</header>
+	<Dialog.Content class="flex w-[380px] max-w-[92vw] flex-col gap-[14px]">
+		<Dialog.Header>
+			<Dialog.Title class="flex items-center gap-2 text-[16px] font-[650]">
+				<Icon name="cloud" size={17} /> Sync
+			</Dialog.Title>
+			<Dialog.Description class="sr-only">Manage sync connection settings</Dialog.Description>
+		</Dialog.Header>
 
-	{#if $authState.connected}
-		<p class="text-[14px]">
-			Connected as <strong>{$authState.email}</strong>
-		</p>
-		<p class="-mt-2 text-[12.5px] text-muted-foreground/70 break-all">{getServerUrl()}</p>
-
-		<div class="flex items-center gap-2 text-[13px] text-muted-foreground">
-			<span
-				class={[
-					'h-2 w-2 flex-none rounded-full',
-					$syncStatus.phase === 'error' ? 'bg-destructive' : 'bg-primary',
-					$syncStatus.phase === 'syncing' && 'animate-[pulse_1s_ease-in-out_infinite]',
-				]}
-			></span>
-			{#if $syncStatus.phase === 'error'}
-				<span class={errText}>{$syncStatus.error}</span>
-			{:else if $syncStatus.phase === 'syncing'}
-				<span>Syncing…</span>
-			{:else}
-				<span>Last synced {lastSyncedLabel($syncStatus.lastSyncedAt)}</span>
-			{/if}
-		</div>
-
-		<div class="flex gap-2">
-			<button
-				class={[btnBase, 'flex-1 border-border bg-card text-foreground enabled:hover:border-primary']}
-				onclick={() => syncNow()}
-				disabled={$syncStatus.phase === 'syncing'}
-			>
-				<Icon name="refresh" size={14} /> Sync now
-			</button>
-			<button
-				class={[btnBase, 'flex-1 border-border bg-transparent text-foreground enabled:hover:border-primary']}
-				onclick={disconnect}
-			>
-				<Icon name="logout" size={14} /> Disconnect
-			</button>
-		</div>
-	{:else}
-		<form onsubmit={connect} class="flex flex-col gap-3">
-			{#if !sameOrigin}
-				<label class="flex flex-col gap-[5px]">
-					<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground"
-						>Server URL</span
-					>
-					<input
-						class="rounded-md border border-border bg-card px-2.5 py-2 text-[14px] text-foreground outline-none focus:border-primary"
-						bind:value={url}
-						type="url"
-						placeholder="https://todo.example.com"
-						autocomplete="off"
-					/>
-				</label>
-			{/if}
-			<label class="flex flex-col gap-[5px]">
-				<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Email</span>
-				<input
-					class="rounded-md border border-border bg-card px-2.5 py-2 text-[14px] text-foreground outline-none focus:border-primary"
-					bind:value={email}
-					type="email"
-					autocomplete="username"
-				/>
-			</label>
-			<label class="flex flex-col gap-[5px]">
-				<span class="text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">Password</span>
-				<input
-					class="rounded-md border border-border bg-card px-2.5 py-2 text-[14px] text-foreground outline-none focus:border-primary"
-					bind:value={password}
-					type="password"
-					autocomplete="current-password"
-				/>
-			</label>
-			{#if error}<p class={errText}>{error}</p>{/if}
-			<button
-				class={[btnBase, 'border-primary bg-primary text-white enabled:hover:brightness-105']}
-				type="submit"
-				disabled={busy || !url || !email || !password}
-			>
-				{busy ? 'Connecting…' : 'Connect'}
-			</button>
-			<p class="m-0 text-[12px] leading-[1.45] text-muted-foreground/70">
-				Your tasks work offline without this. Connecting turns on sync across devices.
+		{#if $authState.connected}
+			<p class="text-[14px]">
+				Connected as <strong>{$authState.email}</strong>
 			</p>
-		</form>
-	{/if}
-</div>
+			<p class="-mt-2 text-[12.5px] text-muted-foreground/70 break-all">{getServerUrl()}</p>
+
+			<div class="flex items-center gap-2 text-[13px] text-muted-foreground">
+				<span
+					class={[
+						'h-2 w-2 flex-none rounded-full',
+						$syncStatus.phase === 'error' ? 'bg-destructive' : 'bg-primary',
+						$syncStatus.phase === 'syncing' && 'animate-[pulse_1s_ease-in-out_infinite]',
+					]}
+				></span>
+				{#if $syncStatus.phase === 'error'}
+					<span class={errText}>{$syncStatus.error}</span>
+				{:else if $syncStatus.phase === 'syncing'}
+					<span>Syncing…</span>
+				{:else}
+					<span>Last synced {lastSyncedLabel($syncStatus.lastSyncedAt)}</span>
+				{/if}
+			</div>
+
+			<div class="flex gap-2">
+				<Button class="flex-1" onclick={() => syncNow()} disabled={$syncStatus.phase === 'syncing'}>
+					<Icon name="refresh" size={14} /> Sync now
+				</Button>
+				<Button variant="outline" class="flex-1" onclick={disconnect}>
+					<Icon name="logout" size={14} /> Disconnect
+				</Button>
+			</div>
+		{:else}
+			<form onsubmit={connect} class="flex flex-col gap-3">
+				<Field.Set class="gap-3">
+					{#if !sameOrigin}
+						<Field.Field class="gap-1.5">
+							<Field.Label for="sync-url">Server URL</Field.Label>
+							<Input
+								id="sync-url"
+								bind:value={url}
+								type="url"
+								placeholder="https://todo.example.com"
+								autocomplete="off"
+							/>
+						</Field.Field>
+					{/if}
+					<Field.Field class="gap-1.5">
+						<Field.Label for="sync-email">Email</Field.Label>
+						<Input id="sync-email" bind:value={email} type="email" autocomplete="username" />
+					</Field.Field>
+					<Field.Field class="gap-1.5">
+						<Field.Label for="sync-password">Password</Field.Label>
+						<Input
+							id="sync-password"
+							bind:value={password}
+							type="password"
+							autocomplete="current-password"
+						/>
+					</Field.Field>
+				</Field.Set>
+				{#if error}<p class={errText}>{error}</p>{/if}
+				<Button type="submit" disabled={busy || !url || !email || !password}>
+					{busy ? 'Connecting…' : 'Connect'}
+				</Button>
+				<p class="m-0 text-[12px] leading-[1.45] text-muted-foreground/70">
+					Your tasks work offline without this. Connecting turns on sync across devices.
+				</p>
+			</form>
+		{/if}
+	</Dialog.Content>
+</Dialog.Root>
 
 <style>
-	@keyframes -global-fade {
-		from {
-			opacity: 0;
-		}
-	}
 	@keyframes -global-pulse {
 		50% {
 			opacity: 0.3;
