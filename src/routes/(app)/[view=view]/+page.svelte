@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { page } from '$app/state';
 	import { projects } from '$lib/store';
 	import MainView from '$lib/MainView.svelte';
-	import type { Selection, SpecialView } from '$lib/types';
+	import type { Selection } from '$lib/types';
+
+	let { params } = $props();
 
 	const selection: Selection = $derived({
 		kind: 'view',
-		view: page.params.view as SpecialView,
+		view: params.view,
 	});
 </script>
 
