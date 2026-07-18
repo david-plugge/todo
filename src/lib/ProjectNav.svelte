@@ -52,7 +52,9 @@
 		<button
 			class={[
 				'flex w-full items-center gap-2.5 rounded-md border-none px-2 py-[7px] text-left transition-colors duration-100',
-				isActive(p.id) ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-accent hover:text-foreground',
+				isActive(p.id)
+					? 'bg-primary/20 text-primary'
+					: 'text-muted-foreground hover:bg-accent hover:text-foreground',
 			]}
 			onclick={() => onselect({ kind: 'project', id: p.id })}
 		>

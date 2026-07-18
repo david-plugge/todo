@@ -117,7 +117,8 @@
 				<Icon name={meta.icon} size={20} />
 				{meta.title}
 			</h1>
-			<span class="rounded-[20px] border border-border bg-card px-[9px] py-px text-[13px] text-muted-foreground/70"
+			<span
+				class="rounded-[20px] border border-border bg-card px-[9px] py-px text-[13px] text-muted-foreground/70"
 				>{tasks.length}</span
 			>
 		</header>

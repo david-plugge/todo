@@ -14,8 +14,9 @@
 
 	--radius: 0.625rem; /* 10px */
 
-	--font: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica,
-		Arial, sans-serif;
+	--font:
+		'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+		sans-serif;
 
 	/* Base surfaces */
 	--background: #ffffff;

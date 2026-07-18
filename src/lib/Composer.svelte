@@ -28,7 +28,9 @@
 		submit();
 	}}
 >
-	<span class="flex text-muted-foreground/70 group-focus-within:text-primary"><Icon name="plus" size={16} /></span>
+	<span class="flex text-muted-foreground/70 group-focus-within:text-primary"
+		><Icon name="plus" size={16} /></span
+	>
 	<input
 		bind:this={el}
 		bind:value={title}

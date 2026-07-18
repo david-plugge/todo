@@ -52,7 +52,8 @@
 		<span class={['truncate', task.completed && 'text-muted-foreground/70 line-through']}
 			>{task.title || 'Untitled'}</span
 		>
-		{#if task.notes}<span class="truncate text-[12.5px] text-muted-foreground">{task.notes}</span>{/if}
+		{#if task.notes}<span class="truncate text-[12.5px] text-muted-foreground">{task.notes}</span
+			>{/if}
 	</div>
 
 	<div class="flex flex-none items-center gap-1.5">
