@@ -97,24 +97,9 @@ body,
 }
 
 body {
-	font-size: 14px;
-	line-height: 1.5;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
 	text-rendering: optimizeLegibility;
-}
-
-button {
-	font-family: inherit;
-	font-size: inherit;
-	cursor: pointer;
-}
-
-input,
-textarea {
-	font-family: inherit;
-	font-size: inherit;
-	color: inherit;
 }
 
 ::selection {

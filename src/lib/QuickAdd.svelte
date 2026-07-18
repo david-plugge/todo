@@ -240,7 +240,7 @@
 		<input
 			bind:this={titleEl}
 			bind:value={title}
-			class="border-none bg-transparent text-[24px] font-medium leading-tight outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
+			class="border-none bg-transparent text-xl font-medium leading-tight outline-none placeholder:font-normal placeholder:text-muted-foreground/70"
 			placeholder="Task name"
 			autocomplete="off"
 			spellcheck="false"
@@ -253,7 +253,7 @@
 		/>
 		<input
 			bind:value={notes}
-			class="border-none bg-transparent text-[14px] outline-none placeholder:text-muted-foreground/70"
+			class="border-none bg-transparent text-sm outline-none placeholder:text-muted-foreground/70"
 			placeholder="Description"
 			autocomplete="off"
 			spellcheck="false"
