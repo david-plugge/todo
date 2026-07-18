@@ -23,7 +23,7 @@ with self-hosted sync through **PocketBase**.
 
 | Layer                  | Choice                                                                            |
 | ---------------------- | --------------------------------------------------------------------------------- |
-| UI                     | Svelte 5 + TypeScript + Vite                                                      |
+| UI                     | SvelteKit (Svelte 5) + TypeScript, adapter-static SPA                             |
 | Desktop / mobile shell | Tauri v2                                                                          |
 | Local store            | Dexie (IndexedDB)                                                                 |
 | Drag sort              | svelte-dnd-action                                                                 |
@@ -45,8 +45,8 @@ pnpm install        # install JS deps
 ```sh
 pnpm tauri dev      # run the Mac app (Vite + native shell)
 pnpm dev            # run just the web UI in a browser (no hotkey / native features)
-pnpm check          # typecheck (svelte-check + tsc)
-pnpm build          # build the web frontend
+pnpm check          # typecheck (svelte-kit sync + svelte-check)
+pnpm build          # build the web frontend (SvelteKit → build/)
 pnpm tauri build    # build a distributable .app / .dmg
 ```
 
@@ -71,13 +71,20 @@ every field edit is an immutable, HLC-stamped change. That log is the source of 
 - `src/lib/live.ts` — adapts a Dexie `liveQuery` into a Svelte store.
 - `src/lib/pb.ts` — PocketBase client, server-URL persistence, and login/logout with a reactive auth store.
 - `src/lib/sync.ts` — the sync engine (see below).
-- `src/main.ts` — routes `?quickadd` to the lightweight `QuickAdd.svelte`, everything else to `App.svelte`;
-  registers the offline service worker (via `virtual:pwa-register`) for the production web build (not in Tauri / dev).
-- `vite.config.ts` — configures `vite-plugin-pwa` (Workbox `generateSW`, `autoUpdate`): precaches every
-  built asset — HTML shell, hashed JS/CSS, the lazy quick-add chunk, favicon — so the app loads offline.
-  The sync API (`/api/`) and admin (`/_/`) are excluded from the SPA fallback, so offline falls back to
-  local IndexedDB rather than serving stale API responses. The SW is disabled for Tauri builds (detected
-  via `TAURI_ENV_PLATFORM`), so no `sw.js` ships inside the native app.
+- `src/routes/` — SvelteKit file-based routes. The URL is the source of truth for the current view.
+  The root `+layout.svelte` loads global CSS and registers the offline service worker (production web
+  build only — not Tauri / dev). The `(app)` layout group is the shell (Sidebar + BottomNav + sync);
+  its pages are the special views (`[view]` → today/upcoming/inbox/all) and projects (`project/[id]`).
+  `/quickadd` is a separate, shell-less page — prerendered to `quickadd.html`, which the Tauri hotkey
+  window loads directly.
+- `src/service-worker.ts` — native SvelteKit service worker: precaches every built asset (hashed JS/CSS,
+  the app shell, favicon) so the app loads offline; cache-first for immutable assets, network-first for
+  navigations with a cached-shell fallback. The sync API (`/api/`) and admin (`/_/`) are never intercepted,
+  so offline falls back to local IndexedDB rather than serving stale API responses. Registered manually
+  (see the root layout) and only in the web build, so it never runs inside the native app.
+- `svelte.config.js` / `vite.config.ts` — adapter-static in SPA mode (`fallback: index.html`, matching
+  PocketBase's `--indexFallback` and Tauri's asset loader); Kit's SW auto-registration is off; the
+  `__TAURI__` build flag (from `TAURI_ENV_PLATFORM`) tree-shakes Tauri-only branches out of the web build.
 - `src-tauri/src/lib.rs` — registers the global shortcut and creates/toggles the quick-add window.
 - `Dockerfile`, `compose.yml`, `compose.dev.yml` — at the repo root: the multi-stage image
   (builds the SPA and serves it from PocketBase) and prod/dev compose stacks.

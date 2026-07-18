@@ -1,6 +1,5 @@
+import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
-import { svelte } from '@sveltejs/vite-plugin-svelte';
-import { VitePWA } from 'vite-plugin-pwa';
 import Icons from 'unplugin-icons/vite';
 
 // Tauri sets TAURI_ENV_* for its beforeBuildCommand (`pnpm build`), so a build
@@ -16,29 +15,11 @@ export default defineConfig({
 		__TAURI__: JSON.stringify(isTauri),
 	},
 	plugins: [
-		svelte(),
+		sveltekit(),
 		// Lucide icons compiled to Svelte components, imported as `~icons/lucide/*`.
 		Icons({ compiler: 'svelte' }),
-		// Offline shell for the production web build (served by PocketBase).
-		// Workbox precaches every built asset — including the lazy ?quickadd
-		// chunk — so the app loads with the server down. autoUpdate keeps the
-		// shell fresh across deploys. Registration is manual (see main.ts) so it
-		// never runs in the Tauri shell; the API (/api/) and admin (/_/) are
-		// excluded from the SPA navigation fallback and so never cached.
-		VitePWA({
-			// No SW in the Tauri bundle at all; the virtual:pwa-register import
-			// in main.ts still resolves (to a no-op) so the build succeeds.
-			disable: isTauri,
-			registerType: 'autoUpdate',
-			injectRegister: false,
-			manifest: false,
-			workbox: {
-				// Default globs cover js/css/html; add svg so the favicon is
-				// cached too (the whole shell works offline, no failed fetch).
-				globPatterns: ['**/*.{js,css,html,svg}'],
-				navigateFallback: 'index.html',
-				navigateFallbackDenylist: [/^\/api\//, /^\/_\//],
-			},
-		}),
 	],
+	// Tauri expects a fixed dev port; fail rather than silently pick another.
+	server: { port: 5173, strictPort: true },
+	clearScreen: false,
 });

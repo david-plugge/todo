@@ -57,7 +57,7 @@ fn toggle_quick_add<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let _ = tauri::WebviewWindowBuilder::new(
         app,
         "quick-add",
-        tauri::WebviewUrl::App("index.html?quickadd".into()),
+        tauri::WebviewUrl::App("quickadd.html".into()),
     )
     .title("Quick Add")
     .inner_size(560.0, 132.0)

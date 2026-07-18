@@ -24,7 +24,7 @@ WORKDIR /app
 # Install deps first so this layer caches unless the manifests change.
 COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
-# Then build the frontend (Vite → /app/dist).
+# Then build the frontend (SvelteKit adapter-static → /app/build).
 COPY . .
 RUN pnpm build
 
@@ -47,4 +47,4 @@ ENTRYPOINT ["pocketbase", "serve", "--http=0.0.0.0:8090", "--dir=/pb_data", "--m
 
 # ---- production (default): the base image plus the built SPA in /pb_public ----
 FROM server AS full
-COPY --from=web /app/dist/ /pb_public/
+COPY --from=web /app/build/ /pb_public/

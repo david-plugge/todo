@@ -2,6 +2,8 @@
 # Keep it lean: exclude host build artifacts and things the image never needs.
 node_modules
 dist
+build
+.svelte-kit
 .git
 .vscode
 src-tauri
