@@ -2,4 +2,7 @@
 // login, so there is nothing to render on the server. Ship a pure SPA.
 export const ssr = false;
 
-export const prerender = true;
+// Dynamic routes (`[view=view]`, `project/[id]`) can't be crawled/prerendered,
+// so they're served by the index.html fallback at runtime. Genuinely static
+// pages opt into prerendering individually (see quickadd/+page.ts).
+export const prerender = false;
