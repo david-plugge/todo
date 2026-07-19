@@ -1,12 +1,9 @@
 <script lang="ts">
 	import type { Task, Project, ISODate } from './types';
 	import { updateTask, deleteTask, toggleComplete } from './store';
-	import { todayISO, addDaysISO, relativeLabel } from './date';
-	import { toDateValue, fromDateValue } from './calendar-date';
 	import Icon from './Icon.svelte';
+	import DateField from './DateField.svelte';
 	import * as Sheet from '$lib/components/ui/sheet/index.js';
-	import * as Popover from '$lib/components/ui/popover/index.js';
-	import { Calendar } from '$lib/components/ui/calendar/index.js';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Textarea } from '$lib/components/ui/textarea/index.js';
 	import { Label } from '$lib/components/ui/label/index.js';
@@ -21,10 +18,6 @@
 	let plannedDate = $state<ISODate | null>(task.plannedDate);
 	let dueDate = $state<ISODate | null>(task.dueDate);
 	let projectId = $state<string | null>(task.projectId);
-
-	// Each date field has its own popover; selecting a day closes it.
-	let plannedOpen = $state(false);
-	let dueOpen = $state(false);
 
 	// Reset locals only when a *different* task is opened, so background
 	// re-emits from the live query don't clobber in-progress edits.
@@ -66,16 +59,12 @@
 		onclose();
 	}
 
-	const today = todayISO();
-
 	const selectedProjectName = $derived(projects.find((p) => p.id === projectId)?.name ?? 'Inbox');
 
 	const fieldLabel =
 		'flex items-center gap-1.5 text-[12px] font-semibold uppercase tracking-[0.04em] text-muted-foreground';
 	const control =
 		'rounded-md border border-border bg-card px-[9px] py-[7px] text-foreground outline-none focus:border-primary';
-	const chipBtn =
-		'rounded-[20px] border border-border bg-card px-[9px] py-[3px] text-[12px] text-muted-foreground transition-all duration-[.12s]';
 </script>
 
 <Sheet.Root open onOpenChange={(v) => !v && onclose()}>
@@ -136,117 +125,13 @@
 		</div>
 
 		<div class="flex flex-col gap-[7px]">
-			<span class={fieldLabel}
-				><Icon name="calendar" size={13} /> Planned {#if plannedDate}<span
-						class="font-medium tracking-normal normal-case text-primary"
-						>· {relativeLabel(plannedDate)}</span
-					>{/if}</span
-			>
-			<div class="flex flex-col gap-[7px]">
-				<Popover.Root bind:open={plannedOpen}>
-					<Popover.Trigger>
-						{#snippet child({ props })}
-							<button
-								{...props}
-								type="button"
-								aria-label="Planned date"
-								class={[control, 'flex items-center justify-between']}
-							>
-								<span class={plannedDate ? 'text-foreground' : 'text-muted-foreground'}>
-									{plannedDate ? relativeLabel(plannedDate) : 'No date'}
-								</span>
-								<Icon name="calendar" size={15} />
-							</button>
-						{/snippet}
-					</Popover.Trigger>
-					<Popover.Content align="start" class="w-auto overflow-hidden p-0">
-						<Calendar
-							type="single"
-							weekStartsOn={1}
-							value={toDateValue(plannedDate)}
-							onValueChange={(v) => {
-								setPlanned(fromDateValue(v));
-								plannedOpen = false;
-							}}
-						/>
-					</Popover.Content>
-				</Popover.Root>
-				<div class="flex flex-wrap gap-[5px]">
-					<button
-						class={[chipBtn, 'hover:border-primary hover:text-foreground']}
-						onclick={() => setPlanned(today)}>Today</button
-					>
-					<button
-						class={[chipBtn, 'hover:border-primary hover:text-foreground']}
-						onclick={() => setPlanned(addDaysISO(today, 1))}>Tomorrow</button
-					>
-					<button
-						class={[chipBtn, 'hover:border-primary hover:text-foreground']}
-						onclick={() => setPlanned(addDaysISO(today, 7))}>Next week</button
-					>
-					{#if plannedDate}<button
-							class={[chipBtn, 'hover:border-destructive hover:text-destructive']}
-							onclick={() => setPlanned(null)}>Clear</button
-						>{/if}
-				</div>
-			</div>
+			<span class={fieldLabel}><Icon name="calendar" size={13} /> Planned</span>
+			<DateField value={plannedDate} onchange={setPlanned} icon="calendar" emptyLabel="No date" />
 		</div>
 
 		<div class="flex flex-col gap-[7px]">
-			<span class={fieldLabel}
-				><Icon name="flag" size={13} /> Due {#if dueDate}<span
-						class="font-medium tracking-normal normal-case text-primary"
-						>· {relativeLabel(dueDate)}</span
-					>{/if}</span
-			>
-			<div class="flex flex-col gap-[7px]">
-				<Popover.Root bind:open={dueOpen}>
-					<Popover.Trigger>
-						{#snippet child({ props })}
-							<button
-								{...props}
-								type="button"
-								aria-label="Due date"
-								class={[control, 'flex items-center justify-between']}
-							>
-								<span class={dueDate ? 'text-foreground' : 'text-muted-foreground'}>
-									{dueDate ? relativeLabel(dueDate) : 'No date'}
-								</span>
-								<Icon name="flag" size={15} />
-							</button>
-						{/snippet}
-					</Popover.Trigger>
-					<Popover.Content align="start" class="w-auto overflow-hidden p-0">
-						<Calendar
-							type="single"
-							weekStartsOn={1}
-							value={toDateValue(dueDate)}
-							onValueChange={(v) => {
-								setDue(fromDateValue(v));
-								dueOpen = false;
-							}}
-						/>
-					</Popover.Content>
-				</Popover.Root>
-				<div class="flex flex-wrap gap-[5px]">
-					<button
-						class={[chipBtn, 'hover:border-primary hover:text-foreground']}
-						onclick={() => setDue(today)}>Today</button
-					>
-					<button
-						class={[chipBtn, 'hover:border-primary hover:text-foreground']}
-						onclick={() => setDue(addDaysISO(today, 1))}>Tomorrow</button
-					>
-					<button
-						class={[chipBtn, 'hover:border-primary hover:text-foreground']}
-						onclick={() => setDue(addDaysISO(today, 7))}>Next week</button
-					>
-					{#if dueDate}<button
-							class={[chipBtn, 'hover:border-destructive hover:text-destructive']}
-							onclick={() => setDue(null)}>Clear</button
-						>{/if}
-				</div>
-			</div>
+			<span class={fieldLabel}><Icon name="flag" size={13} /> Due</span>
+			<DateField value={dueDate} onchange={setDue} icon="flag" emptyLabel="No date" />
 		</div>
 
 		<footer class="mt-auto pt-2">

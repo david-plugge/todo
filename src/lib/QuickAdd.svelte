@@ -1,14 +1,10 @@
 <script lang="ts">
 	import type { ID, ISODate } from './types';
 	import { addTask, projects } from './store';
-	import { todayISO, addDaysISO, relativeLabel } from './date';
-	import { toDateValue, fromDateValue } from './calendar-date';
 	import * as Popover from './components/ui/popover';
 	import * as Command from './components/ui/command';
-	import { Calendar } from './components/ui/calendar';
 	import Icon from './Icon.svelte';
-
-	type Picker = 'planned' | 'due' | 'project';
+	import DateField from './DateField.svelte';
 
 	let title = $state('');
 	let notes = $state('');
@@ -16,80 +12,18 @@
 	let dueDate = $state<ISODate | null>(null);
 	let projectId = $state<ID | null>(null);
 
-	// Only one popover is ever open at a time. Each Popover's `open` is a function
-	// binding over this shared enum, so opening one closes the others; the setter
-	// only nulls the enum when the closing popover is the one still recorded, which
-	// keeps the state correct regardless of open/close event ordering.
-	let open = $state<Picker | null>(null);
-	const setOpen = (field: Picker) => (v: boolean) => {
-		if (v) open = field;
-		else if (open === field) open = null;
-	};
+	// The date pickers own their own open state (DateField). Only the project
+	// popover is coordinated here.
+	let projectOpen = $state(false);
 
 	let titleEl = $state<HTMLInputElement>();
 	let card = $state<HTMLElement>();
 
-	const today = todayISO();
 	const selectedProject = $derived($projects.find((p) => p.id === projectId) ?? null);
-
-	const dow = (iso: ISODate) => {
-		const [y, m, d] = iso.split('-').map(Number);
-		return new Date(y, m - 1, d).getDay();
-	};
-	/** The next date strictly after today that falls on weekday `target` (0=Sun…6=Sat). */
-	const nextDow = (target: number): ISODate => {
-		let add = (target - dow(today) + 7) % 7;
-		if (add === 0) add = 7;
-		return addDaysISO(today, add);
-	};
-	const fmt = (iso: ISODate, opts: Intl.DateTimeFormatOptions): string => {
-		const [y, m, d] = iso.split('-').map(Number);
-		return new Date(y, m - 1, d).toLocaleDateString(undefined, opts);
-	};
-	const tomorrow = addDaysISO(today, 1);
-	const nextWeek = nextDow(1); // Monday
-	const nextWeekend = nextDow(6); // Saturday
-
-	const quickDates = [
-		{
-			label: 'Today',
-			icon: 'today',
-			color: '#22c55e',
-			date: today,
-			hint: fmt(today, { weekday: 'short' }),
-		},
-		{
-			label: 'Tomorrow',
-			icon: 'sun',
-			color: '#f59e0b',
-			date: tomorrow,
-			hint: fmt(tomorrow, { weekday: 'short' }),
-		},
-		{
-			label: 'Next week',
-			icon: 'next',
-			color: '#8b5cf6',
-			date: nextWeek,
-			hint: fmt(nextWeek, { weekday: 'short', day: 'numeric', month: 'short' }),
-		},
-		{
-			label: 'Next weekend',
-			icon: 'weekend',
-			color: '#06b6d4',
-			date: nextWeekend,
-			hint: fmt(nextWeekend, { weekday: 'short', day: 'numeric', month: 'short' }),
-		},
-	];
-
-	function setDate(field: 'planned' | 'due', iso: ISODate | null) {
-		if (field === 'planned') plannedDate = iso;
-		else dueDate = iso;
-		open = null;
-	}
 
 	function pickProject(id: ID | null) {
 		projectId = id;
-		open = null;
+		projectOpen = false;
 	}
 
 	function reset() {
@@ -98,7 +32,7 @@
 		plannedDate = null;
 		dueDate = null;
 		projectId = null;
-		open = null;
+		projectOpen = false;
 	}
 
 	async function hideWindow() {
@@ -166,68 +100,6 @@
 	});
 </script>
 
-{#snippet datePopover(field: 'planned' | 'due', value: ISODate | null)}
-	<div class="flex flex-col py-1.5">
-		{#each quickDates as q (q.label)}
-			<button
-				type="button"
-				class="flex items-center gap-3 px-3 py-1.5 text-left text-[14px] text-foreground hover:bg-accent"
-				onclick={() => setDate(field, q.date)}
-			>
-				<span class="flex" style="color:{q.color}"><Icon name={q.icon} size={17} /></span>
-				<span class="flex-1">{q.label}</span>
-				<span class="text-[13px] text-muted-foreground/70">{q.hint}</span>
-			</button>
-		{/each}
-	</div>
-
-	<div class="border-t border-border">
-		<Calendar
-			type="single"
-			weekStartsOn={1}
-			value={toDateValue(value)}
-			onValueChange={(v) => setDate(field, fromDateValue(v))}
-		/>
-	</div>
-{/snippet}
-
-{#snippet datePill(
-	props: Record<string, unknown>,
-	field: 'planned' | 'due',
-	icon: string,
-	emptyLabel: string,
-	value: ISODate | null,
-)}
-	<button
-		{...props}
-		type="button"
-		class={[
-			'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[13px] transition-colors',
-			value || open === field
-				? 'border-primary/40 bg-primary/10 text-primary'
-				: 'border-border-strong bg-transparent text-muted-foreground hover:bg-accent hover:text-foreground',
-		]}
-	>
-		<Icon name={icon} size={15} />
-		{value ? relativeLabel(value) : emptyLabel}
-		{#if value}
-			<span
-				class="-mr-1 ml-0.5 flex rounded-full p-0.5 hover:bg-primary/20"
-				role="button"
-				tabindex="-1"
-				aria-label="Clear {emptyLabel}"
-				onclick={(e) => {
-					e.stopPropagation();
-					setDate(field, null);
-				}}
-				onkeydown={() => {}}
-			>
-				<Icon name="x" size={13} />
-			</span>
-		{/if}
-	</button>
-{/snippet}
-
 <svelte:window onkeydown={onKey} onpointerdown={onPointerDown} />
 
 <div
@@ -266,33 +138,14 @@
 		/>
 
 		<div class="mt-2.5 flex gap-2">
-			<Popover.Root bind:open={() => open === 'planned', setOpen('planned')}>
-				<Popover.Trigger>
-					{#snippet child({ props })}
-						{@render datePill(props, 'planned', 'today', 'Date', plannedDate)}
-					{/snippet}
-				</Popover.Trigger>
-				<Popover.Content align="start" class="w-auto overflow-hidden p-0">
-					{@render datePopover('planned', plannedDate)}
-				</Popover.Content>
-			</Popover.Root>
-
-			<Popover.Root bind:open={() => open === 'due', setOpen('due')}>
-				<Popover.Trigger>
-					{#snippet child({ props })}
-						{@render datePill(props, 'due', 'flag', 'Due', dueDate)}
-					{/snippet}
-				</Popover.Trigger>
-				<Popover.Content align="start" class="w-auto overflow-hidden p-0">
-					{@render datePopover('due', dueDate)}
-				</Popover.Content>
-			</Popover.Root>
+			<DateField bind:value={plannedDate} icon="today" emptyLabel="Date" />
+			<DateField bind:value={dueDate} icon="flag" emptyLabel="Due" />
 		</div>
 	</div>
 
 	<!-- Footer: project picker + actions -->
 	<div class="flex items-center justify-between border-t border-border px-[18px] py-2.5">
-		<Popover.Root bind:open={() => open === 'project', setOpen('project')}>
+		<Popover.Root bind:open={projectOpen}>
 			<Popover.Trigger
 				class="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[13px] font-medium text-muted-foreground hover:bg-accent hover:text-foreground"
 			>
