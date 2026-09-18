@@ -7,3 +7,7 @@ pb_public
 test-results
 playwright-report
 pnpm-lock.yaml
+Dockerfile
+.dockerignore
+.env.example
+docker-entrypoint.sh

@@ -28,6 +28,8 @@ Die Arbeitsdaten liegen pro Konto in einer eigenen IndexedDB-Datenbank. Testdate
 
 Für das Deployment reicht `pb_public/` neben dem selbst gebauten PocketBase-Go-Binary; eine produktive Node-Anwendung ist nicht erforderlich. Die Browser-Test-Harness ist ausschließlich eine Testfixture. Die SPA nutzt `ssr = false`, `prerender = false` und `adapter-static` mit `fallback: 'index.html'`.
 
+Der produktive Containervertrag mit Fail-Closed-Konfiguration, Non-root-Runtime, Healthcheck und Smoke-Test steht in [docs/deployment.md](docs/deployment.md).
+
 ## MCP
 
 Das native Go-Backend integriert das offizielle MCP-SDK und acht typisierte Aufgaben-/Listen-Tools. MCP OAuth unterstützt Browser-Zustimmung, PKCE, Token-Rotation und Widerruf. Anschluss, Berechtigungen und Tests: [docs/mcp.md](docs/mcp.md).

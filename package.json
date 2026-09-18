@@ -22,6 +22,7 @@
     "lint": "eslint .",
     "verify": "pnpm run format:check && pnpm run lint && pnpm run check && pnpm test && pnpm run backend:check && pnpm run backend:build && pnpm run build",
     "test:e2e": "pnpm run test:browser && pnpm run test:pwa && pnpm run test:pocketbase",
+    "test:container": "node tests/deployment/container-smoke.mjs",
     "backend:build": "mise run backend:build",
     "backend:format": "mise run backend:format",
     "backend:check": "mise run backend:check"

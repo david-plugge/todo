@@ -6,5 +6,8 @@ test-results/
 playwright-report/
 pb_data/
 .DS_Store
+.env
+.env.*
+!.env.example
 .tools/
 pb_test_data/

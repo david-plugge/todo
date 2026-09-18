@@ -1,0 +1,33 @@
+services:
+  freiraum:
+    image: freiraum:${FREIRAUM_TAG:-local}
+    build:
+      context: .
+    restart: unless-stopped
+    init: true
+    ports:
+      - '${FREIRAUM_BIND_ADDRESS:-127.0.0.1}:${FREIRAUM_PORT:-8090}:8090'
+    environment:
+      TODO_PUBLIC_URL: ${TODO_PUBLIC_URL:?TODO_PUBLIC_URL is required}
+      PB_ENCRYPTION_KEY: ${PB_ENCRYPTION_KEY:?PB_ENCRYPTION_KEY is required}
+    volumes:
+      - freiraum-data:/app/pb_data
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8090/api/health']
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
+    deploy:
+      replicas: 1
+
+volumes:
+  freiraum-data:

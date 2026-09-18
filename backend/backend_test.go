@@ -16,6 +16,58 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
+func TestProductionConfig(t *testing.T) {
+	valid := []string{
+		"https://tasks.example.com",
+		"https://tasks.example.com:8443",
+		"http://localhost:8090",
+		"http://127.0.0.1:8090",
+		"http://127.0.0.2:8090",
+		"http://[::1]:8090",
+	}
+	for _, origin := range valid {
+		t.Run("valid_"+origin, func(t *testing.T) {
+			t.Setenv("TODO_PUBLIC_URL", origin)
+			t.Setenv("PB_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef")
+			if err := validateProductionConfig(); err != nil {
+				t.Fatalf("expected valid production config: %v", err)
+			}
+		})
+	}
+
+	invalid := []string{
+		"",
+		"http://tasks.example.com",
+		"https://tasks.example.com/",
+		"https://tasks.example.com/todo",
+		"https://tasks.example.com?mode=prod",
+		"https://tasks.example.com#fragment",
+		"https://user@tasks.example.com",
+		"https://:443",
+		"https://tasks.example.com:",
+		"https://tasks.example.com:notaport",
+		"https://tasks.example.com:0",
+		"https://tasks.example.com:65536",
+	}
+	for _, origin := range invalid {
+		t.Run("invalid_"+origin, func(t *testing.T) {
+			t.Setenv("TODO_PUBLIC_URL", origin)
+			t.Setenv("PB_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef")
+			if err := validateProductionConfig(); err == nil {
+				t.Fatal("expected invalid production origin")
+			}
+		})
+	}
+
+	t.Setenv("TODO_PUBLIC_URL", "https://tasks.example.com")
+	for _, key := range []string{"", "short", strings.Repeat("ä", 16)} {
+		t.Setenv("PB_ENCRYPTION_KEY", key)
+		if err := validateProductionConfig(); err == nil {
+			t.Fatalf("expected invalid encryption key with %d bytes", len([]byte(key)))
+		}
+	}
+}
+
 func openTestApp(t *testing.T, directory string) *pocketbase.PocketBase {
 	t.Helper()
 	app := pocketbase.NewWithConfig(pocketbase.Config{DefaultDataDir: directory})
