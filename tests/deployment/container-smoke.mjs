@@ -180,6 +180,20 @@ try {
     return status === 'healthy';
   }, 'Docker healthcheck did not become healthy');
 
+  for (let attempt = 1; attempt <= 31; attempt++) {
+    const response = await fetch(`${origin}/api/oauth/register`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: '{}',
+    });
+    if (attempt <= 30 && ![400, 422].includes(response.status))
+      throw new Error(
+        `OAuth registration rate limit triggered early on request ${attempt} (${response.status})`,
+      );
+    if (attempt === 31 && response.status !== 429)
+      throw new Error(`OAuth registration rate limit missing (${response.status})`);
+  }
+
   console.log('Container smoke test passed.');
 } finally {
   command(['rm', '--force', container], { allowFailure: true, capture: true });

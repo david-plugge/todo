@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-oauth2/oauth2/v4/models"
 	"github.com/google/uuid"
+	"github.com/pocketbase/dbx"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -153,6 +154,130 @@ func TestFailedTokenTransactionRollsBack(t *testing.T) {
 	}
 	if _, err := (oauthStore{app}).row(token.Access, "access"); err == nil {
 		t.Fatal("rolled-back token remained")
+	}
+}
+
+func TestProductionRateLimitsMigration(t *testing.T) {
+	app := openTestApp(t, t.TempDir())
+	limits := app.Settings().RateLimits
+	if !limits.Enabled {
+		t.Fatal("rate limits are disabled")
+	}
+	for label, expected := range map[string]struct {
+		max      int
+		duration int64
+	}{
+		"*:auth":                   {120, 60},
+		"POST /api/oauth/register": {30, 3600},
+		"POST /api/oauth/token":    {120, 60},
+		"POST /api/todo/mcp":       {600, 60},
+		"POST /api/todo/push":      {600, 60},
+		"GET /api/todo/pull":       {6000, 60},
+	} {
+		rule, ok := limits.FindRateLimitRule(
+			[]string{label},
+			core.RateLimitRuleAudienceAll,
+			core.RateLimitRuleAudienceGuest,
+		)
+		if !ok {
+			t.Errorf("missing rate limit %q", label)
+			continue
+		}
+		if label != "*:auth" && rule.Audience != core.RateLimitRuleAudienceGuest {
+			t.Errorf("unexpected rate limit audience %q: %+v", label, rule)
+		}
+		if rule.MaxRequests != expected.max || rule.Duration != expected.duration {
+			t.Errorf("unexpected rate limit %q: %+v", label, rule)
+		}
+	}
+}
+
+func TestOAuthCleanupPreservesActiveReplayEvidence(t *testing.T) {
+	app := openTestApp(t, t.TempDir())
+	now := time.Unix(2_000_000_000, 0)
+	insertPending := func(id string, expires int64) {
+		t.Helper()
+		_, err := app.DB().
+			NewQuery("INSERT INTO _oauth_pending(id,data,expires) VALUES ({:id},'{}',{:expires})").
+			Bind(dbx.Params{"id": id, "expires": expires}).
+			Execute()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	insertToken := func(raw, kind, family string, spent int, expires int64) {
+		t.Helper()
+		_, err := app.DB().NewQuery(`
+			INSERT INTO _oauth_tokens(hash,kind,family,owner,data,spent,expires)
+			VALUES ({:hash},{:kind},{:family},'owner','{}',{:spent},{:expires})
+		`).Bind(dbx.Params{
+			"hash": digest(raw), "kind": kind, "family": family,
+			"spent": spent, "expires": expires,
+		}).Execute()
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	count := func(table, filter string, params dbx.Params) int {
+		t.Helper()
+		var row struct {
+			Count int `db:"count"`
+		}
+		if err := app.DB().
+			NewQuery("SELECT COUNT(*) count FROM " + table + " WHERE " + filter).
+			Bind(params).
+			One(&row); err != nil {
+			t.Fatal(err)
+		}
+		return row.Count
+	}
+
+	insertPending("past", now.Unix()-1)
+	insertPending("boundary", now.Unix())
+	insertPending("future", now.Unix()+1)
+	insertToken("old-refresh", "refresh", "active", 1, now.Unix()+300)
+	insertToken("current-refresh", "refresh", "active", 0, now.Unix()+300)
+	insertToken("old-access", "access", "active", 1, now.Unix()-1)
+	insertToken("dead-refresh", "refresh", "dead", 1, now.Unix()+300)
+	insertToken("dead-access", "access", "dead", 0, now.Unix()-1)
+
+	stats, err := cleanupOAuth(app, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats != (oauthCleanupStats{Pending: 2, TokenFamilies: 1, Tokens: 2}) {
+		t.Fatalf("unexpected cleanup stats: %+v", stats)
+	}
+	if got := count("_oauth_pending", "1=1", nil); got != 1 {
+		t.Fatalf("got %d pending rows", got)
+	}
+	if got := count("_oauth_tokens", "family={:family}", dbx.Params{"family": "active"}); got != 3 {
+		t.Fatalf("active family lost replay evidence: %d rows", got)
+	}
+	if got := count("_oauth_tokens", "family={:family}", dbx.Params{"family": "dead"}); got != 0 {
+		t.Fatalf("inactive family retained %d rows", got)
+	}
+	old, err := (oauthStore{app}).row("old-refresh", "refresh")
+	if err != nil || old.Spent != 1 {
+		t.Fatalf("spent refresh replay evidence missing: %+v, %v", old, err)
+	}
+
+	second, err := cleanupOAuth(app, now)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if second != (oauthCleanupStats{}) {
+		t.Fatalf("cleanup is not idempotent: %+v", second)
+	}
+
+	// This is the same family revocation path used when the token endpoint sees
+	// the retained spent refresh token again.
+	if err := (oauthStore{app}).revoke(old.Family); err != nil {
+		t.Fatal(err)
+	}
+	current, err := (oauthStore{app}).row("current-refresh", "refresh")
+	if err != nil || current.Spent != 1 {
+		t.Fatalf("replay could not revoke current refresh: %+v, %v", current, err)
 	}
 }
 

@@ -57,7 +57,20 @@ In PocketBase dürfen nur diejenigen Proxy-Header als vertrauenswürdig konfigur
 - Bei Host-Bind-Mounts muss das Datenverzeichnis für UID/GID `10001:10001` schreibbar sein. Das bereitgestellte Named Volume benötigt keine manuelle Rechteanpassung.
 - `--dev` ist im Container-Entrypoint nicht aktiv und Command-Overrides werden abgelehnt. Administrative Einmalbefehle müssen den Entry-Point wie oben bewusst überschreiben.
 
-Rate-Limits, OAuth-Datenbereinigung und der Backup-/Restore-Cursorvertrag sind getrennte Livegang-Schritte und werden durch das Image nicht vorgetäuscht.
+Der Backup-/Restore-Cursorvertrag bleibt ein getrennter Livegang-Schritt und wird durch das Image nicht vorgetäuscht.
+
+## Rate-Limits und OAuth-Wartung
+
+Eine eingebettete Go-Migration aktiviert PocketBases IP-basierten Rate-Limiter einmalig. Sie ergänzt methodenspezifische Regeln für dynamische OAuth-Registrierung, Authorization, Consent, Token, Revoke, Verbindungen, MCP sowie Todo-Push und -Pull. Die Migration überschreibt später im Dashboard vorgenommene Änderungen nicht bei jedem Prozessstart. Weil PocketBases globaler Rate-Limit-Middleware vor dem Laden der Record-Authentifizierung läuft, sind diese Regeln bewusst als Guest/IP-Regeln hinterlegt.
+
+Der Limiter lebt im Speicher einer einzelnen Instanz. Ein Prozessneustart setzt seine Zähler zurück; bei einer späteren horizontalen Architektur wäre deshalb zusätzlich ein gemeinsamer Limiter am Edge erforderlich. Für korrekte IP-Schlüssel dürfen ausschließlich Proxy-Header vertraut werden, die der eigene Reverse Proxy entfernt und neu setzt.
+
+Der Cron-Job `freiraumOAuthCleanup` läuft täglich um `03:23 UTC`. Er löscht ausschließlich:
+
+- abgelaufene offene OAuth-Zustimmungsanfragen und
+- vollständige Tokenfamilien, in denen kein unverbrauchter, noch gültiger Code, Access- oder Refresh-Token existiert.
+
+Verbrauchte Refresh-Tokens einer aktiven Familie bleiben erhalten, damit ihre Wiederverwendung weiterhin die gesamte Familie widerruft. Der Job löscht ausdrücklich keine OAuth-Clients, Todo-Changes, Receipts, Tasks, Listen oder Tombstones. Erfolgreiche Läufe loggen die Anzahl gelöschter Pending-Einträge, Familien und Tokens; Fehler werden geloggt und die Transaktion wird vollständig zurückgerollt.
 
 ## Prüfung
 

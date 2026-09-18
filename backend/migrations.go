@@ -117,4 +117,83 @@ func init() {
 		}
 		return nil
 	}, nil, "1789552000_oauth.go")
+	m.Register(func(app core.App) error {
+		settings := app.Settings()
+		settings.RateLimits.Enabled = true
+
+		// The global rate-limit middleware runs before PocketBase loads record auth,
+		// so custom and authenticated routes are deliberately limited as guests by IP.
+		// Method-qualified labels keep the tighter public endpoint limits separate
+		// from PocketBase's default /api/ fallback rule.
+		desired := []core.RateLimitRule{
+			{
+				Label:       "*:auth",
+				Audience:    core.RateLimitRuleAudienceAll,
+				MaxRequests: 120,
+				Duration:    60,
+			},
+			{
+				Label:       "POST /api/oauth/register",
+				Audience:    core.RateLimitRuleAudienceGuest,
+				MaxRequests: 30,
+				Duration:    3600,
+			},
+			{
+				Label:       "GET /api/oauth/authorize",
+				Audience:    core.RateLimitRuleAudienceGuest,
+				MaxRequests: 120,
+				Duration:    600,
+			},
+			{
+				Label:       "GET /api/oauth/consent",
+				Audience:    core.RateLimitRuleAudienceGuest,
+				MaxRequests: 120,
+				Duration:    600,
+			},
+			{
+				Label:       "POST /api/oauth/consent",
+				Audience:    core.RateLimitRuleAudienceGuest,
+				MaxRequests: 120,
+				Duration:    600,
+			},
+			{Label: "POST /api/oauth/token", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 120, Duration: 60},
+			{Label: "POST /api/oauth/revoke", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 60, Duration: 60},
+			{
+				Label:       "GET /api/oauth/connections",
+				Audience:    core.RateLimitRuleAudienceGuest,
+				MaxRequests: 120,
+				Duration:    60,
+			},
+			{
+				Label:       "POST /api/oauth/connections/",
+				Audience:    core.RateLimitRuleAudienceGuest,
+				MaxRequests: 120,
+				Duration:    60,
+			},
+			{Label: "POST /api/todo/mcp", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 600, Duration: 60},
+			{Label: "GET /api/todo/mcp", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 600, Duration: 60},
+			{Label: "DELETE /api/todo/mcp", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 600, Duration: 60},
+			{Label: "POST /api/todo/push", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 600, Duration: 60},
+			{Label: "GET /api/todo/pull", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 6000, Duration: 60},
+			{Label: "GET /api/realtime", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 1200, Duration: 60},
+			{Label: "POST /api/realtime", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 1200, Duration: 60},
+		}
+
+		for _, rule := range desired {
+			replaced := false
+			for i := range settings.RateLimits.Rules {
+				if settings.RateLimits.Rules[i].Label == rule.Label &&
+					settings.RateLimits.Rules[i].Audience == rule.Audience {
+					settings.RateLimits.Rules[i] = rule
+					replaced = true
+					break
+				}
+			}
+			if !replaced {
+				settings.RateLimits.Rules = append(settings.RateLimits.Rules, rule)
+			}
+		}
+
+		return app.Save(settings)
+	}, nil, "1789553000_production_rate_limits.go")
 }

@@ -71,6 +71,9 @@ func main() {
 	}
 	app := pocketbase.New()
 	registerUserCommand(app)
+	if err := registerMaintenance(app); err != nil {
+		log.Fatal(err)
+	}
 	var public string
 	app.RootCmd.PersistentFlags().StringVar(&public, "publicDir", "pb_public", "static application directory")
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{Automigrate: false})
