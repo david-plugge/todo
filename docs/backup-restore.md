@@ -51,7 +51,7 @@ The command:
 
 1. record the external restore ID idempotently;
 2. rotate `_todo_sync_state.generation`;
-3. remove restored OAuth tokens, pending grants, MFA, OTP, and auth-origin
+3. remove restored OAuth tokens, pending grants, compact refresh-replay evidence, MFA, OTP, and auth-origin
    challenges;
 4. rotate `tokenKey` for every `todo_users` and superuser record;
 5. leave tasks, lists, `todo_changes`, and `todo_receipts` unchanged; and

@@ -104,14 +104,19 @@ export class PushWorker {
         const ack = await this.send(mutation, generation, signal);
         signal.throwIfAborted();
         if (!matchesAck(mutation, ack)) throw new Error('ACK does not match the sent mutation');
-        await this.adapter.write(
+        const applied = await this.adapter.write(
           ack.serverRevision === undefined
             ? ['outbox']
             : ['outbox', entityType === 'task' ? 'tasks' : 'lists'],
           async () => {
+            const currentGeneration = (await this.adapter.db.syncMetadata.get('sync-state'))
+              ?.generation;
+            // A restore may have rebound every pending request to a new idempotency domain
+            // while this request was in flight. An ACK from that old generation is inert.
+            if (currentGeneration !== generation) return false;
             const pending = await this.adapter.db.outbox.get(id);
             // A different tab may already have acknowledged the same immutable mutation.
-            if (!pending) return;
+            if (!pending) return false;
             if (!matchesAck(pending, ack)) throw new Error('ACK does not match pending mutation');
             // Keep an acknowledged local snapshot ahead of any older deferred pull.
             // A newer local version stays pending and receives no blanket synced flag.
@@ -132,9 +137,10 @@ export class PushWorker {
                 });
             }
             await this.adapter.db.outbox.delete(id);
+            return true;
           },
         );
-        acknowledged++;
+        if (applied) acknowledged++;
       } catch (error) {
         if (signal.aborted) throw signal.reason;
         await this.adapter.write(['outbox'], async () => {

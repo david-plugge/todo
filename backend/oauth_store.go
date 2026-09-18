@@ -46,7 +46,14 @@ type tokenRow struct {
 	Data    string `db:"data"`
 	Spent   int    `db:"spent"`
 	Expires int64  `db:"expires"`
+	Client  string `db:"client_id"`
 }
+
+type refreshReplayState struct {
+	Count     int   `db:"count"`
+	LastSpent int64 `db:"last_spent"`
+}
+
 type oauthStore struct{ app core.App }
 
 func (s oauthStore) client(id string) (oauthClient, error) {
@@ -123,8 +130,8 @@ func (s oauthStore) Create(_ context.Context, info oauth.TokenInfo) error {
 			continue
 		}
 		_, err = s.app.DB().
-			NewQuery("INSERT INTO _oauth_tokens(hash,kind,family,owner,data,expires) VALUES ({:hash},{:kind},{:family},{:owner},{:data},{:expires})").
-			Bind(dbx.Params{"hash": digest(item.value), "kind": item.kind, "family": t.Extension.Get("family"), "owner": t.UserID, "data": string(b), "expires": item.expires.Unix()}).
+			NewQuery("INSERT INTO _oauth_tokens(hash,kind,family,owner,data,expires,client_id) VALUES ({:hash},{:kind},{:family},{:owner},{:data},{:expires},{:client})").
+			Bind(dbx.Params{"hash": digest(item.value), "kind": item.kind, "family": t.Extension.Get("family"), "owner": t.UserID, "data": string(b), "expires": item.expires.Unix(), "client": t.ClientID}).
 			Execute()
 		if err != nil {
 			return err
@@ -134,11 +141,60 @@ func (s oauthStore) Create(_ context.Context, info oauth.TokenInfo) error {
 }
 
 func (s oauthStore) remove(token, kind string) error {
+	if kind == "access" {
+		_, err := s.app.DB().
+			NewQuery("DELETE FROM _oauth_tokens WHERE hash={:hash} AND kind='access'").
+			Bind(dbx.Params{"hash": digest(token)}).
+			Execute()
+		return err
+	}
+	if kind == "refresh" {
+		row, err := s.row(token, kind)
+		if err != nil {
+			return err
+		}
+		if _, err = s.app.DB().NewQuery(`
+			INSERT INTO _oauth_refresh_replays(hash,family,expires,spent_at)
+			VALUES ({:hash},{:family},{:expires},{:spentAt})
+			ON CONFLICT(hash) DO NOTHING
+		`).Bind(dbx.Params{
+			"hash": row.Hash, "family": row.Family,
+			"expires": row.Expires, "spentAt": time.Now().Unix(),
+		}).Execute(); err != nil {
+			return err
+		}
+		_, err = s.app.DB().
+			NewQuery("DELETE FROM _oauth_tokens WHERE hash={:hash} AND kind='refresh'").
+			Bind(dbx.Params{"hash": row.Hash}).
+			Execute()
+		return err
+	}
 	_, err := s.app.DB().
 		NewQuery("UPDATE _oauth_tokens SET spent=1 WHERE hash={:hash} AND kind={:kind}").
 		Bind(dbx.Params{"hash": digest(token), "kind": kind}).
 		Execute()
 	return err
+}
+
+func (s oauthStore) replayedRefreshFamily(token string, now time.Time) (string, error) {
+	var row struct {
+		Family string `db:"family"`
+	}
+	err := s.app.DB().
+		NewQuery("SELECT family FROM _oauth_refresh_replays WHERE hash={:hash} AND expires>{:now}").
+		Bind(dbx.Params{"hash": digest(token), "now": now.Unix()}).
+		One(&row)
+	return row.Family, err
+}
+
+func (s oauthStore) refreshReplays(family string) (refreshReplayState, error) {
+	var state refreshReplayState
+	err := s.app.DB().NewQuery(`
+		SELECT COUNT(*) count, COALESCE(MAX(spent_at), 0) last_spent
+		FROM _oauth_refresh_replays
+		WHERE family={:family}
+	`).Bind(dbx.Params{"family": family}).One(&state)
+	return state, err
 }
 
 func (s oauthStore) revoke(family string) error {

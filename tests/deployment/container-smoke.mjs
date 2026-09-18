@@ -82,11 +82,60 @@ try {
   for (const env of [
     [],
     ['--env', 'TODO_PUBLIC_URL=https://tasks.example.com/', '--env', `PB_ENCRYPTION_KEY=${key}`],
+    ['--env', 'TODO_PUBLIC_URL=https://tasks.example.com:443', '--env', `PB_ENCRYPTION_KEY=${key}`],
+    ['--env', 'TODO_PUBLIC_URL=https://TASKS.example.com', '--env', `PB_ENCRYPTION_KEY=${key}`],
+    ['--env', 'TODO_PUBLIC_URL=https://bücher.example', '--env', `PB_ENCRYPTION_KEY=${key}`],
+    ['--env', 'TODO_PUBLIC_URL=https://127.1', '--env', `PB_ENCRYPTION_KEY=${key}`],
     ['--env', 'TODO_PUBLIC_URL=https://tasks.example.com', '--env', 'PB_ENCRYPTION_KEY=short'],
+    [
+      '--env',
+      'TODO_PUBLIC_URL=https://tasks.example.com',
+      '--env',
+      `PB_ENCRYPTION_KEY=${key}`,
+      '--env',
+      'TODO_TRUSTED_PROXY_HEADER=X-Real-IP',
+    ],
+    [
+      '--env',
+      'TODO_PUBLIC_URL=https://tasks.example.com',
+      '--env',
+      `PB_ENCRYPTION_KEY=${key}`,
+      '--env',
+      'TODO_TRUSTED_PROXY_HEADER=X-Client-IP',
+      '--env',
+      'TODO_TRUSTED_PROXY_CIDRS=10.0.0.1/32',
+    ],
+    [
+      '--env',
+      'TODO_PUBLIC_URL=https://tasks.example.com',
+      '--env',
+      `PB_ENCRYPTION_KEY=${key}`,
+      '--env',
+      'TODO_TRUSTED_PROXY_HEADER=X-Forwarded-For',
+      '--env',
+      'TODO_TRUSTED_PROXY_CIDRS=0.0.0.0/0',
+    ],
   ]) {
     const failed = command(['run', '--rm', ...env, image], { allowFailure: true, capture: true });
     if (failed.status === 0) throw new Error('container accepted invalid production configuration');
   }
+
+  command([
+    'run',
+    '--rm',
+    '--entrypoint',
+    '/app/freiraum',
+    '--env',
+    'TODO_PUBLIC_URL=https://tasks.example.com',
+    '--env',
+    `PB_ENCRYPTION_KEY=${key}`,
+    '--env',
+    'TODO_TRUSTED_PROXY_HEADER=X-Real-IP',
+    '--env',
+    'TODO_TRUSTED_PROXY_CIDRS=10.0.0.1/32',
+    image,
+    'production-check',
+  ]);
 
   command(['volume', 'create', volume]);
   command([

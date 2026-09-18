@@ -199,7 +199,7 @@
       type="submit"
       aria-label="Liste hinzufügen"
       title="Liste hinzufügen"
-      disabled={!ready || busy || !listName.trim()}
+      disabled={!ready || !listName.trim()}
     >
       <Plus size={18} aria-hidden="true" />
     </button>

@@ -41,7 +41,7 @@ Freiraum verbindet die App unter `/` mit PocketBase: Auth, getrennte Benutzerdat
 ```sh
 pnpm run backend:install
 pnpm run build
-pnpm run backend
+pnpm run backend # lokaler Public-URL-Default: http://127.0.0.1:8090
 # http://127.0.0.1:8090/
 ```
 

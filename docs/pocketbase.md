@@ -10,6 +10,10 @@ pnpm run build
 pnpm run backend          # 127.0.0.1:8090, persistente Daten in pb_data/
 ```
 
+`pnpm run backend` verwendet `http://127.0.0.1:8090` als `TODO_PUBLIC_URL`, wenn die Variable
+nicht bereits gesetzt ist. Ein direkter Binary- oder Containerstart bleibt fail-closed und benötigt
+`TODO_PUBLIC_URL` weiterhin explizit.
+
 - App mit Anmeldung: `http://127.0.0.1:8090/`
 - PocketBase-Dashboard: `http://127.0.0.1:8090/_/`
 - `/account` leitet für bestehende Links auf `/` weiter. Die Browser-Test-Harness ist nicht Teil der ausgelieferten Anwendung.

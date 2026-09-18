@@ -203,7 +203,7 @@ func finalizeRestore(app core.App, restoreID string) error {
 			return err
 		}
 		for _, table := range []string{
-			"_oauth_tokens", "_oauth_pending", core.CollectionNameMFAs,
+			"_oauth_tokens", "_oauth_pending", "_oauth_refresh_replays", core.CollectionNameMFAs,
 			core.CollectionNameOTPs, core.CollectionNameAuthOrigins,
 		} {
 			if _, err := tx.DB().NewQuery("DELETE FROM " + table).Execute(); err != nil {

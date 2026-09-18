@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
-	"os"
 	"regexp"
 	"slices"
 	"strings"
@@ -23,6 +23,14 @@ type modelsToken = models.Token
 var challengePattern = regexp.MustCompile(`^[A-Za-z0-9_-]{43}$`)
 var verifierPattern = regexp.MustCompile(`^[A-Za-z0-9._~-]{43,128}$`)
 
+const (
+	// One eager rotation is tolerated for client compatibility. Subsequent
+	// rotations in a family must be spaced out so public token requests cannot
+	// grow replay evidence at request-rate speed.
+	oauthRefreshMinInterval = 10 * time.Minute
+	oauthRefreshReplayLimit = 4096
+)
+
 func validRedirect(uri string) bool {
 	u, err := url.Parse(uri)
 	return err == nil && u.Host != "" && u.User == nil && u.Fragment == "" &&
@@ -30,17 +38,11 @@ func validRedirect(uri string) bool {
 }
 func oauthError(e *core.RequestEvent, code string) error { return e.JSON(400, Object{"error": code}) }
 func registerOAuth(e *core.ServeEvent) error {
-	issuer := strings.TrimRight(os.Getenv("TODO_PUBLIC_URL"), "/")
-	if issuer == "" {
-		issuer = "http://127.0.0.1:8090"
-	}
-	if !validRedirect(issuer) {
-		return fmt.Errorf("TODO_PUBLIC_URL must be HTTPS or a loopback HTTP origin")
+	issuer, err := productionOrigin()
+	if err != nil {
+		return err
 	}
 	u, _ := url.Parse(issuer)
-	if u.Path != "" || u.RawQuery != "" {
-		return fmt.Errorf("TODO_PUBLIC_URL must contain an origin only")
-	}
 	resource := issuer + "/api/todo/mcp"
 	guard := func(r *core.RequestEvent) error {
 		r.Response.Header().Set("Cache-Control", "no-store")
@@ -116,10 +118,11 @@ func registerOAuth(e *core.ServeEvent) error {
 		if c.Name == "" {
 			c.Name = "MCP client"
 		}
-		_, err := r.App.DB().
-			NewQuery("INSERT INTO _oauth_clients(id,data,created) VALUES ({:id},{:data},{:created})").
-			Bind(dbx.Params{"id": c.ID, "data": canonical(c), "created": time.Now().Unix()}).
-			Execute()
+		err := createOAuthClient(r.App, c, time.Now(), oauthClientLimit)
+		if errors.Is(err, errOAuthClientCapacity) {
+			r.Response.Header().Set("Retry-After", "3600")
+			return r.JSON(429, Object{"error": "temporarily_unavailable"})
+		}
 		if err != nil {
 			return err
 		}
@@ -134,10 +137,6 @@ func registerOAuth(e *core.ServeEvent) error {
 			if len(values) != 1 {
 				return oauthError(r, "invalid_request")
 			}
-		}
-		c, err := (oauthStore{r.App}).client(q.Get("client_id"))
-		if err != nil || !slices.Contains(c.Redirects, q.Get("redirect_uri")) {
-			return oauthError(r, "invalid_request")
 		}
 		if q.Get("response_type") != "code" || q.Get("resource") != resource ||
 			q.Get("code_challenge_method") != "S256" ||
@@ -156,10 +155,22 @@ func registerOAuth(e *core.ServeEvent) error {
 			}
 		}
 		id := secret()
-		_, err = r.App.DB().
-			NewQuery("INSERT INTO _oauth_pending(id,data,expires) VALUES ({:id},{:data},{:expires})").
-			Bind(dbx.Params{"id": digest(id), "data": canonical(q), "expires": time.Now().Add(10 * time.Minute).Unix()}).
-			Execute()
+		invalidClient := false
+		err := r.App.RunInTransaction(func(tx core.App) error {
+			c, err := (oauthStore{tx}).client(q.Get("client_id"))
+			if err != nil || !slices.Contains(c.Redirects, q.Get("redirect_uri")) {
+				invalidClient = true
+				return nil
+			}
+			_, err = tx.DB().
+				NewQuery("INSERT INTO _oauth_pending(id,data,expires,client_id) VALUES ({:id},{:data},{:expires},{:client})").
+				Bind(dbx.Params{"id": digest(id), "data": canonical(q), "expires": time.Now().Add(10 * time.Minute).Unix(), "client": c.ID}).
+				Execute()
+			return err
+		})
+		if invalidClient {
+			return oauthError(r, "invalid_request")
+		}
 		if err != nil {
 			return err
 		}
@@ -230,6 +241,12 @@ func registerOAuth(e *core.ServeEvent) error {
 				if err != nil {
 					return err
 				}
+				if _, err = tx.DB().
+					NewQuery("UPDATE _oauth_clients SET last_used={:lastUsed} WHERE id={:id}").
+					Bind(dbx.Params{"lastUsed": time.Now().Unix(), "id": q.Get("client_id")}).
+					Execute(); err != nil {
+					return err
+				}
 				v.Set("code", info.GetCode())
 			} else {
 				v.Set("error", "access_denied")
@@ -276,10 +293,19 @@ func registerOAuth(e *core.ServeEvent) error {
 		}
 		var result Object
 		invalid := false
+		retryAfter := int64(0)
+		now := time.Now()
 		err := r.App.RunInTransaction(func(tx core.App) error {
 			store := oauthStore{tx}
 			row, err := store.row(raw, kind)
 			if err != nil {
+				if kind == "refresh" {
+					family, replayErr := store.replayedRefreshFamily(raw, now)
+					if replayErr == nil {
+						invalid = true
+						return store.revoke(family)
+					}
+				}
 				return bad("invalid_grant")
 			}
 			var stored modelsToken
@@ -294,6 +320,23 @@ func registerOAuth(e *core.ServeEvent) error {
 			user, err := tx.FindRecordById("todo_users", row.Owner)
 			if err != nil || user == nil {
 				return bad("invalid_grant")
+			}
+			if grant == "refresh_token" {
+				state, err := store.refreshReplays(row.Family)
+				if err != nil {
+					return err
+				}
+				if state.Count >= oauthRefreshReplayLimit {
+					invalid = true
+					return store.revoke(row.Family)
+				}
+				if state.Count > 0 {
+					readyAt := time.Unix(state.LastSpent, 0).Add(oauthRefreshMinInterval)
+					if readyAt.After(now) {
+						retryAfter = int64((readyAt.Sub(now) + time.Second - 1) / time.Second)
+						return nil
+					}
+				}
 			}
 			request := &oauth.TokenGenerateRequest{
 				ClientID:     q.Get("client_id"),
@@ -317,7 +360,7 @@ func registerOAuth(e *core.ServeEvent) error {
 				info, err = m.RefreshAccessToken(r.Request.Context(), request)
 				if err == nil {
 					_, err = tx.DB().
-						NewQuery("UPDATE _oauth_tokens SET spent=1 WHERE family={:family} AND kind='access' AND hash!={:hash}").
+						NewQuery("DELETE FROM _oauth_tokens WHERE family={:family} AND kind='access' AND hash!={:hash}").
 						Bind(dbx.Params{"family": row.Family, "hash": digest(info.GetAccess())}).
 						Execute()
 				}
@@ -336,6 +379,10 @@ func registerOAuth(e *core.ServeEvent) error {
 		})
 		if err != nil || invalid {
 			return oauthError(r, "invalid_grant")
+		}
+		if retryAfter > 0 {
+			r.Response.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+			return r.JSON(429, Object{"error": "temporarily_unavailable"})
 		}
 		return r.JSON(200, result)
 	}).Bind(apis.BodyLimit(8192))

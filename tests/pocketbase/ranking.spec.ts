@@ -290,12 +290,47 @@ test('mobile layout: create dated task in list, filter and reorder lists', async
   for (const [index, label] of ['Mein Tag', 'Geplant', 'Alle Aufgaben', 'Mehr'].entries())
     await expect(mobileNavigation.getByRole('button').nth(index)).toHaveText(label);
   await expect(page.getByRole('heading', { name: 'Mein Tag', exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Mehr', exact: true }).click();
-  await page.getByLabel('Neue Liste', { exact: true }).fill('Privat');
-  await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
-  await page.getByLabel('Neue Liste', { exact: true }).fill('Arbeit');
-  await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
-  await expect(page.getByLabel('Neue Liste', { exact: true })).toHaveValue('');
+  const more = page.getByRole('button', { name: 'Mehr', exact: true });
+  await page.evaluate(() => {
+    const trigger = [...document.querySelectorAll('button')].find(
+      (button) => button.textContent?.trim() === 'Mehr',
+    );
+    trigger?.addEventListener(
+      'click',
+      () => {
+        const observer = new MutationObserver(() => {
+          const input = document.querySelector<HTMLInputElement>('[aria-label="Neue Liste"]');
+          if (!input) return;
+          input.disabled = true;
+          observer.disconnect();
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+      },
+      { capture: true, once: true },
+    );
+  });
+  await more.click();
+  const newList = page.getByLabel('Neue Liste', { exact: true });
+  const closeDrawer = page.getByRole('button', { name: 'Menü schließen', exact: true });
+  await expect(newList).toBeDisabled();
+  await expect(closeDrawer).toBeFocused();
+  await newList.evaluate((input) => {
+    if (!(input instanceof HTMLInputElement)) throw new Error('New-list control is not an input');
+    input.disabled = false;
+    input.focus();
+  });
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  await expect(newList).toBeFocused();
+  await closeDrawer.click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+
+  await more.click();
+  await expect(newList).toBeFocused();
+  await newList.fill('Privat');
+  await newList.press('Enter');
+  await newList.fill('Arbeit');
+  await newList.press('Enter');
+  await expect(newList).toHaveValue('');
   await synced(page);
   const drawer = page.getByRole('dialog');
   const listRow = drawer.getByRole('listitem', { name: 'Arbeit', exact: true });

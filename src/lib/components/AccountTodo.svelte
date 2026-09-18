@@ -19,6 +19,7 @@
   let { account, logout }: { account: Account; logout: () => void } = $props();
   let mobile = $state(false);
   let drawer = $state(false);
+  let drawerContent = $state<HTMLElement | null>(null);
   let activeEditor = $state<string | null>(null);
   let completedOpen = $state(true);
   function setEditor(next: string | null) {
@@ -60,6 +61,16 @@
   const orderedLists = $derived(
     lists.data.filter((list) => list.deletedAt === undefined).sort(compareRank),
   );
+
+  function focusDrawer(event: Event) {
+    event.preventDefault();
+    requestAnimationFrame(() => {
+      if (!drawer || !drawerContent || drawerContent.contains(document.activeElement)) return;
+      const listInput = drawerContent.querySelector<HTMLInputElement>('[aria-label="Neue Liste"]');
+      if (listInput && !listInput.disabled) listInput.focus();
+      else drawerContent.querySelector<HTMLButtonElement>('[aria-label="Menü schließen"]')?.focus();
+    });
+  }
 
   const contextualView = $derived(view === 'all' || !['today', 'planned', 'done'].includes(view));
   const openTasks = $derived(
@@ -194,9 +205,7 @@
       {busy}
       email={account.email}
       {settings}
-      navigate={() => {
-        drawer = false;
-      }}
+      navigate={() => (drawer = false)}
       bind:view={() => view, selectView}
       bind:newList
       create={(name) => local(() => store.createList(name))}
@@ -238,6 +247,8 @@
       <Dialog.Portal>
         <Dialog.Overlay class="fixed inset-0 z-100 bg-[#19221b66]" />
         <Dialog.Content
+          bind:ref={drawerContent}
+          onOpenAutoFocus={focusDrawer}
           class="fixed inset-x-0 bottom-0 z-101 block max-h-[85dvh] min-h-0 overflow-y-auto overscroll-contain rounded-t-[20px] bg-canvas px-4 pt-4 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-[0_-12px_40px_#19221b22] motion-safe:animate-[drawer-in_180ms_ease-out]"
           data-workspace
         >

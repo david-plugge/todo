@@ -49,8 +49,12 @@ export interface OutboxEntry {
 export interface SyncMetadata {
   id: string;
   revision: number;
+  createdAt?: number;
+  leaseUntil?: number;
   cursor?: number;
   generation?: string;
+  sourceCursor?: number;
+  sourceGeneration?: string;
   until?: number;
   kind?: 'task' | 'list';
   snapshotCursor?: string;
