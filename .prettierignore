@@ -1,0 +1,9 @@
+node_modules
+.svelte-kit
+.tools
+pb_data
+pb_test_data
+pb_public
+test-results
+playwright-report
+pnpm-lock.yaml

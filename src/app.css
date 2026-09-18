@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-canvas: #faf9f6;
+  --color-surface: #fffefa;
+  --color-text: #333832;
+  --color-muted: #63705d;
+  --color-accent: #365c3d;
+  --color-accent-hover: #25462b;
+  --color-selected: #e6eddf;
+  --color-border: #e4e2da;
+  --color-focus: #70895d;
+  --color-danger: #9b4935;
+  --color-danger-soft: #fbece7;
+  --radius-card: 14px;
+  --breakpoint-sidebar: 50rem;
+  --breakpoint-mobile: 36.25rem;
+}
+
+@layer base {
+  body {
+    @apply m-0 bg-canvas font-sans text-text antialiased;
+  }
+
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']),
+  summary {
+    cursor: pointer;
+  }
+
+  :is(a, button, input, select, textarea, [tabindex]):focus-visible {
+    @apply outline-2 outline-offset-3 outline-focus;
+  }
+}
+
+/* svelte-dnd-action appends this clone to <body>, outside the component tree. */
+#dnd-action-dragged-el {
+  @apply cursor-grabbing overflow-hidden rounded-lg bg-canvas outline-1 outline-border;
+  box-shadow:
+    0 12px 32px #28332224,
+    0 1px 4px #28332218;
+}
+
+#dnd-action-dragged-el .compact-drag-title {
+  display: none;
+}
+
+#dnd-action-dragged-el.compact-drag {
+  overflow: visible;
+  border: 0 !important;
+  outline: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+#dnd-action-dragged-el.compact-drag > :not(.compact-drag-title) {
+  display: none !important;
+}
+
+#dnd-action-dragged-el.compact-drag .compact-drag-title {
+  @apply absolute top-[-42px] left-0 block w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[7px] border border-focus bg-canvas px-3 py-2 text-xs leading-4 text-accent;
+  box-shadow: 0 5px 16px #28332220;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-workspace] *,
+  #dnd-action-dragged-el {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}

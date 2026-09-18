@@ -1,0 +1,10 @@
+node_modules/
+.svelte-kit/
+.test-build/
+pb_public/
+test-results/
+playwright-report/
+pb_data/
+.DS_Store
+.tools/
+pb_test_data/

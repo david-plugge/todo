@@ -1,0 +1,16 @@
+[tools]
+pnpm = "12.4.1"
+go = "1.27.1"
+golangci-lint = "2.13.2"
+
+[tasks."backend:build"]
+dir = "backend"
+run = "go build -o ../.tools/freiraum ."
+
+[tasks."backend:format"]
+dir = "backend"
+run = "golangci-lint fmt"
+
+[tasks."backend:check"]
+dir = "backend"
+run = ["golangci-lint fmt --diff", "golangci-lint run", "go test ./..."]
