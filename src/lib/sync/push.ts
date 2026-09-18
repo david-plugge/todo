@@ -21,7 +21,7 @@ export interface PushAck {
 }
 export interface PushTransport {
   // Must be idempotent by mutation.id, validate immutable payloads, and honor cancellation.
-  send(mutation: PushMutation, signal: AbortSignal): Promise<PushAck>;
+  send(mutation: PushMutation, generation: string, signal: AbortSignal): Promise<PushAck>;
 }
 
 export function matchesAck(entry: PushMutation, ack: PushAck): boolean {
@@ -73,6 +73,9 @@ export class PushWorker {
         a.entityVersion - b.entityVersion ||
         a.id.localeCompare(b.id),
     );
+    if (!entries.length) return 0;
+    const generation = (await this.adapter.db.syncMetadata.get('sync-state'))?.generation;
+    if (!generation) throw new Error('Sync generation has not been confirmed');
     let acknowledged = 0;
     const blocked = new Set<string>();
     for (const entry of entries) {
@@ -98,7 +101,7 @@ export class PushWorker {
       if (payload.id !== entityId || payload.version !== entityVersion)
         throw new Error('Invalid outbox snapshot');
       try {
-        const ack = await this.send(mutation, signal);
+        const ack = await this.send(mutation, generation, signal);
         signal.throwIfAborted();
         if (!matchesAck(mutation, ack)) throw new Error('ACK does not match the sent mutation');
         await this.adapter.write(
@@ -150,7 +153,11 @@ export class PushWorker {
     return acknowledged;
   }
 
-  private async send(mutation: PushMutation, parent: AbortSignal): Promise<PushAck> {
+  private async send(
+    mutation: PushMutation,
+    generation: string,
+    parent: AbortSignal,
+  ): Promise<PushAck> {
     const request = new AbortController();
     const cancel = () => request.abort(parent.reason);
     parent.addEventListener('abort', cancel, { once: true });
@@ -166,7 +173,10 @@ export class PushWorker {
         request.signal.addEventListener('abort', rejectAbort, { once: true });
         if (request.signal.aborted) rejectAbort();
       });
-      return await Promise.race([this.transport.send(mutation, request.signal), aborted]);
+      return await Promise.race([
+        this.transport.send(mutation, generation, request.signal),
+        aborted,
+      ]);
     } finally {
       clearTimeout(timer);
       parent.removeEventListener('abort', cancel);

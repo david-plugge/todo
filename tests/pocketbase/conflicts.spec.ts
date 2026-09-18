@@ -2,6 +2,7 @@ import { triggerSync } from './navigation-helpers';
 import { expect, test, type Page, type APIRequestContext } from '@playwright/test';
 import { initialVersions, taskFields, stampChanges } from '../../src/lib/domain/versions';
 import type { Task } from '../../src/lib/domain/models';
+import { bootstrapSyncGeneration, syncHeaders } from './sync-api';
 const devices = ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'];
 async function login(page: Page, name: string) {
   await page.goto('/account');
@@ -133,7 +134,8 @@ async function auth(request: APIRequestContext) {
       data: { identity: 'field-api@example.test', password: 'test-password-12345!' },
     })
   ).json();
-  return { headers: { Authorization: result.token }, owner: result.record.id };
+  const generation = await bootstrapSyncGeneration(request, result.token);
+  return { headers: syncHeaders(result.token, generation), owner: result.record.id };
 }
 test('field protocol validates stamps, keeps receipts stable, and rejects legacy downgrades', async ({
   request,

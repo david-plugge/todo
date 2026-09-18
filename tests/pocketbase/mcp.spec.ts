@@ -4,6 +4,7 @@ import { expect, test, type APIRequestContext } from '@playwright/test';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { Task } from '../../src/lib/domain/models';
+import { bootstrapSyncGeneration, changesPull } from './sync-api';
 
 async function login(request: APIRequestContext, name: string) {
   const response = await request.post('/api/collections/todo_users/auth-with-password', {
@@ -11,10 +12,12 @@ async function login(request: APIRequestContext, name: string) {
   });
   expect(response.ok()).toBe(true);
   const auth = await response.json();
+  const generation = await bootstrapSyncGeneration(request, auth.token);
   const flow = await authorize(request, auth.token);
   return {
     token: flow.tokens.access_token as string,
     pbToken: auth.token as string,
+    generation,
     record: auth.record,
   };
 }
@@ -171,7 +174,9 @@ test('official MCP SDK: discovery, owner isolation, CRUD, receipts and calendar/
     // Replaying a successful older command returns its original result, never recreates the tombstone.
     expect(await call(client, 'create_task', args)).toEqual(created);
     const pulled = await (
-      await request.get('/api/todo/pull', { headers: { Authorization: auth.pbToken } })
+      await request.get(changesPull('/api/todo/pull', auth.generation), {
+        headers: { Authorization: auth.pbToken },
+      })
     ).json();
     expect(pulled.changes).toHaveLength(5);
     expect(pulled.changes.at(-1).payload.deletedAt).toBe(deleted.entity.deletedAt);
@@ -363,7 +368,9 @@ test('MCP concurrent retries commit once; competing revisions conflict; paginati
     expect(last.nextCursor).toBeNull();
     expect(new Set([...first.items, ...last.items].map((item) => item.id)).size).toBe(3);
     const pull = await (
-      await request.get('/api/todo/pull', { headers: { Authorization: auth.pbToken } })
+      await request.get(changesPull('/api/todo/pull', auth.generation), {
+        headers: { Authorization: auth.pbToken },
+      })
     ).json();
     expect(pull.changes).toHaveLength(4);
   } finally {

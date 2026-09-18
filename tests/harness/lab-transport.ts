@@ -9,7 +9,7 @@ export function createLabTransport(): PushTransport {
     localStorage.setItem(key, session);
   }
   return {
-    async send(mutation, signal) {
+    async send(mutation, _generation, signal) {
       const response = await fetch('/api/spike/push', {
         method: 'POST',
         headers: { 'content-type': 'application/json', 'x-spike-session': session },

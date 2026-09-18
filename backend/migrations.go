@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 
+	"github.com/google/uuid"
 	"github.com/pocketbase/pocketbase/core"
 	m "github.com/pocketbase/pocketbase/migrations"
 )
@@ -175,6 +176,12 @@ func init() {
 			{Label: "DELETE /api/todo/mcp", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 600, Duration: 60},
 			{Label: "POST /api/todo/push", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 600, Duration: 60},
 			{Label: "GET /api/todo/pull", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 6000, Duration: 60},
+			{
+				Label:       "GET /api/todo/snapshot",
+				Audience:    core.RateLimitRuleAudienceGuest,
+				MaxRequests: 6000,
+				Duration:    60,
+			},
 			{Label: "GET /api/realtime", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 1200, Duration: 60},
 			{Label: "POST /api/realtime", Audience: core.RateLimitRuleAudienceGuest, MaxRequests: 1200, Duration: 60},
 		}
@@ -196,4 +203,16 @@ func init() {
 
 		return app.Save(settings)
 	}, nil, "1789553000_production_rate_limits.go")
+	m.Register(func(app core.App) error {
+		for _, sql := range []string{
+			`CREATE TABLE _todo_sync_state (id INTEGER PRIMARY KEY CHECK (id = 1), generation TEXT NOT NULL)`,
+			`INSERT INTO _todo_sync_state (id, generation) VALUES (1, '` + uuid.NewString() + `')`,
+			`CREATE TABLE _todo_restore_runs (restore_id TEXT PRIMARY KEY, finalized INTEGER NOT NULL)`,
+		} {
+			if _, err := app.DB().NewQuery(sql).Execute(); err != nil {
+				return err
+			}
+		}
+		return nil
+	}, nil, "1789554000_sync_generation.go")
 }

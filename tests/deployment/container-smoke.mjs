@@ -131,14 +131,22 @@ try {
     throw new Error('foreign CORS origin was allowed');
 
   const auth = await login();
+  const reset = await fetch(`${origin}/api/todo/pull`, {
+    headers: { authorization: auth.token },
+  });
+  if (!reset.ok) throw new Error(`initial reset pull failed (${reset.status})`);
+  const { mode, generation } = await reset.json();
+  if (mode !== 'reset' || typeof generation !== 'string' || generation.length === 0)
+    throw new Error('initial pull did not provide a sync generation reset');
   const entityId = randomUUID();
+  const mutationDeviceId = randomUUID();
   const mutation = {
     id: randomUUID(),
     entityId,
     entityType: 'task',
     entityVersion: 1,
     operation: 'create',
-    deviceId: randomUUID(),
+    deviceId: mutationDeviceId,
     baseRevision: 0,
     payload: {
       id: entityId,
@@ -148,11 +156,20 @@ try {
       version: 1,
       createdAt: 1,
       updatedAt: 1,
+      fieldVersions: {
+        title: { counter: 1, deviceId: mutationDeviceId },
+        completed: { counter: 1, deviceId: mutationDeviceId },
+        deletedAt: { counter: 0, deviceId: '' },
+      },
     },
   };
   const pushed = await fetch(`${origin}/api/todo/push`, {
     method: 'POST',
-    headers: { authorization: auth.token, 'content-type': 'application/json' },
+    headers: {
+      authorization: auth.token,
+      'content-type': 'application/json',
+      'X-Todo-Sync-Generation': generation,
+    },
     body: JSON.stringify(mutation),
   });
   if (!pushed.ok) throw new Error(`task push failed (${pushed.status})`);
@@ -164,7 +181,7 @@ try {
     'restarted health unavailable',
   );
   const restartedAuth = await login();
-  const pull = await fetch(`${origin}/api/todo/pull`, {
+  const pull = await fetch(`${origin}/api/todo/pull?generation=${encodeURIComponent(generation)}`, {
     headers: { authorization: restartedAuth.token },
   });
   if (!pull.ok) throw new Error(`pull after restart failed (${pull.status})`);

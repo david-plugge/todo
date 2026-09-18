@@ -4,6 +4,7 @@ import { expect, test, type Page, type APIRequestContext } from '@playwright/tes
 import { compareRank } from '../../src/lib/ranking/rank';
 import { stampChanges } from '../../src/lib/domain/versions';
 import type { Task } from '../../src/lib/domain/models';
+import { bootstrapSyncGeneration, syncHeaders } from './sync-api';
 const devices = ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'];
 async function login(page: Page, name: string) {
   await page.goto('/account');
@@ -51,7 +52,8 @@ async function auth(request: APIRequestContext, name: string) {
   });
   expect(response.status()).toBe(200);
   const json = await response.json();
-  return { owner: json.record.id, headers: { Authorization: json.token } };
+  const generation = await bootstrapSyncGeneration(request, json.token);
+  return { owner: json.record.id, headers: syncHeaders(json.token, generation) };
 }
 for (const order of ['ab', 'ba'])
   test(`offline moves plus independent calendar fields converge in ${order} order`, async ({
@@ -295,12 +297,12 @@ test('mobile layout: create dated task in list, filter and reorder lists', async
   await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
   await expect(page.getByLabel('Neue Liste', { exact: true })).toHaveValue('');
   await synced(page);
-  const listRow = page.getByRole('listitem', { name: 'Arbeit', exact: true });
-  await listRow.focus();
-  await page.keyboard.press('Space');
-  await page.keyboard.press('ArrowUp');
-  await expect(page.getByTestId('account-list')).toHaveText(['Arbeit', 'Privat']);
-  await page.keyboard.press('Space');
+  const drawer = page.getByRole('dialog');
+  const listRow = drawer.getByRole('listitem', { name: 'Arbeit', exact: true });
+  await listRow.press('Space');
+  await listRow.press('ArrowUp');
+  await expect(drawer.getByTestId('account-list')).toHaveText(['Arbeit', 'Privat']);
+  await listRow.press('Space');
   await expect(page.getByTestId('sort-status')).toHaveText('Neue Reihenfolge gespeichert.');
   await page.getByRole('button', { name: 'Menü schließen' }).click();
   await page.getByRole('button', { name: 'Geplant', exact: true }).click();

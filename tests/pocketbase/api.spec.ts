@@ -1,11 +1,17 @@
 import { expect, test, type APIRequestContext } from '@playwright/test';
+import { bootstrapSyncGeneration, changesPull, syncHeaders } from './sync-api';
 async function login(request: APIRequestContext, name: string) {
   const response = await request.post('/api/collections/todo_users/auth-with-password', {
     data: { identity: `${name}@example.test`, password: 'test-password-12345!' },
   });
   expect(response.status()).toBe(200);
   const result = await response.json();
-  return { owner: result.record.id as string, headers: { Authorization: result.token as string } };
+  const generation = await bootstrapSyncGeneration(request, result.token);
+  return {
+    owner: result.record.id as string,
+    generation,
+    headers: syncHeaders(result.token, generation),
+  };
 }
 function mutation(owner: string, overrides: Record<string, unknown> = {}) {
   const entityId = crypto.randomUUID();
@@ -37,6 +43,17 @@ test('authenticated push is idempotent; ownership and direct-write rules are enf
   const b = await login(request, 'api-other');
   const m = mutation(a.owner);
   expect((await request.post('/api/todo/push', { data: m })).status()).toBe(401);
+  expect((await request.get('/api/todo/pull')).status()).toBe(401);
+  for (const generation of [undefined, crypto.randomUUID()]) {
+    const headers = generation
+      ? syncHeaders(a.headers.Authorization, generation)
+      : { Authorization: a.headers.Authorization };
+    expect((await request.post('/api/todo/push', { headers, data: m })).status()).toBe(409);
+  }
+  const before = await (
+    await request.get('/api/collections/tasks/records', { headers: a.headers })
+  ).json();
+  expect(before.items).toHaveLength(0);
   const first = await request.post('/api/todo/push', { headers: a.headers, data: m });
   expect(first.status()).toBe(200);
   const ack = await first.json();
@@ -90,9 +107,13 @@ test('authenticated push is idempotent; ownership and direct-write rules are enf
       ).status(),
     ).toBe(403);
   }
-  const pullA = await (await request.get('/api/todo/pull', { headers: a.headers })).json();
+  const pullA = await (
+    await request.get(changesPull('/api/todo/pull', a.generation), { headers: a.headers })
+  ).json();
   expect(pullA.changes).toHaveLength(1);
-  const pullB = await (await request.get('/api/todo/pull', { headers: b.headers })).json();
+  const pullB = await (
+    await request.get(changesPull('/api/todo/pull', b.generation), { headers: b.headers })
+  ).json();
   expect(pullB.changes).toHaveLength(0);
   expect(
     (await request.get('/api/collections/todo_receipts/records', { headers: a.headers })).status(),
@@ -111,7 +132,11 @@ test('stable revision cursor pages all changes including tombstones and concurre
       200,
     );
   }
-  const first = await (await request.get('/api/todo/pull?limit=2', { headers: a.headers })).json();
+  const first = await (
+    await request.get(changesPull('/api/todo/pull?limit=2', a.generation), {
+      headers: a.headers,
+    })
+  ).json();
   expect(first.changes).toHaveLength(2);
   expect(first.hasMore).toBe(true);
   const deleted = mutations[0];
@@ -134,9 +159,12 @@ test('stable revision cursor pages all changes including tombstones and concurre
   let more = first.hasMore;
   while (more) {
     const page = await (
-      await request.get(`/api/todo/pull?limit=2&after=${cursor}&until=${first.until}`, {
-        headers: a.headers,
-      })
+      await request.get(
+        changesPull(`/api/todo/pull?limit=2&after=${cursor}&until=${first.until}`, a.generation),
+        {
+          headers: a.headers,
+        },
+      )
     ).json();
     all.push(...page.changes);
     expect(page.cursor).toBeGreaterThan(cursor);
@@ -147,14 +175,29 @@ test('stable revision cursor pages all changes including tombstones and concurre
   expect(new Set(all.map((c) => c.revision)).size).toBe(5);
   expect(cursor).toBe(first.until);
   const next = await (
-    await request.get(`/api/todo/pull?after=${cursor}`, { headers: a.headers })
+    await request.get(changesPull(`/api/todo/pull?after=${cursor}`, a.generation), {
+      headers: a.headers,
+    })
   ).json();
   expect(next.changes).toHaveLength(1);
   expect(next.changes[0].payload.deletedAt).toBe(10);
   for (const query of ['after=-1', 'after=1.5', 'limit=0', 'until=99999999999999999999'])
-    expect((await request.get(`/api/todo/pull?${query}`, { headers: a.headers })).status()).toBe(
-      400,
-    );
+    expect(
+      (
+        await request.get(changesPull(`/api/todo/pull?${query}`, a.generation), {
+          headers: a.headers,
+        })
+      ).status(),
+    ).toBe(400);
+
+  const resetBeforeCursorValidation = await request.get('/api/todo/pull?after=invalid', {
+    headers: { Authorization: a.headers.Authorization },
+  });
+  expect(resetBeforeCursorValidation.status()).toBe(200);
+  expect(await resetBeforeCursorValidation.json()).toMatchObject({
+    mode: 'reset',
+    generation: a.generation,
+  });
 });
 
 test('legacy different-device conflicts remain pending; lists use the protected push/pull path', async ({
@@ -199,7 +242,9 @@ test('legacy different-device conflicts remain pending; lists use the protected 
   expect((await request.post('/api/todo/push', { headers: a.headers, data: list })).status()).toBe(
     200,
   );
-  const pulled = await (await request.get('/api/todo/pull', { headers: a.headers })).json();
+  const pulled = await (
+    await request.get(changesPull('/api/todo/pull', a.generation), { headers: a.headers })
+  ).json();
   expect(pulled.changes).toHaveLength(3);
   expect(pulled.changes[1].payload.title).toBe('winner');
   expect(pulled.changes[2].entityType).toBe('list');

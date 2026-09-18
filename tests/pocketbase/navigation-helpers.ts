@@ -10,7 +10,13 @@ export async function openSettings(page: Page) {
 
 export async function triggerSync(page: Page) {
   await openSettings(page);
-  await page.getByRole('button', { name: 'Jetzt synchronisieren', exact: true }).click();
+  const button = page.getByRole('button', { name: 'Jetzt synchronisieren', exact: true });
+  await button.click();
+  // The click only schedules engine.trigger(). Observe the complete cycle before leaving
+  // settings so an old "Synchronisiert" state cannot satisfy the next assertion early.
+  await expect(button).toBeDisabled();
+  await expect(button).toBeEnabled();
+  await expect(page.getByTestId('account-sync-status')).toHaveText('Synchronisiert');
   await page.getByRole('link', { name: 'Zurück zu Aufgaben', exact: true }).click();
   await expect(page).not.toHaveURL(/view=settings/);
 }

@@ -309,6 +309,58 @@ func clock(app core.App) (int64, error) {
 	return r.Value, err
 }
 
+func syncGeneration(app core.App) (string, error) {
+	var row struct {
+		Generation string `db:"generation"`
+	}
+	err := app.DB().NewQuery("SELECT generation FROM _todo_sync_state WHERE id=1").One(&row)
+	return row.Generation, err
+}
+
+type snapshotRow struct {
+	EntityID string `db:"entityId"`
+	Data     string `db:"data"`
+}
+
+func snapshotRecords(app core.App, owner, kind, after string, until int64, limit int) ([]Object, string, bool, error) {
+	rows := []snapshotRow{}
+	err := app.DB().NewQuery(`
+		SELECT c.entityId, c.data
+		FROM todo_changes c
+		JOIN (
+			SELECT entityId, MAX(revision) AS revision
+			FROM todo_changes
+			WHERE owner={:owner} AND kind={:kind} AND revision<={:until} AND entityId>{:after}
+			GROUP BY entityId
+		) latest ON latest.entityId=c.entityId AND latest.revision=c.revision
+		WHERE c.owner={:owner} AND c.kind={:kind}
+		ORDER BY c.entityId
+		LIMIT {:limit}
+	`).Bind(dbx.Params{
+		"owner": owner, "kind": kind, "until": until, "after": after, "limit": limit + 1,
+	}).All(&rows)
+	if err != nil {
+		return nil, "", false, err
+	}
+	more := len(rows) > limit
+	if more {
+		rows = rows[:limit]
+	}
+	records := make([]Object, 0, len(rows))
+	for _, row := range rows {
+		var record Object
+		if err := json.Unmarshal([]byte(row.Data), &record); err != nil {
+			return nil, "", false, err
+		}
+		records = append(records, record)
+	}
+	cursor := ""
+	if more && len(rows) > 0 {
+		cursor = rows[len(rows)-1].EntityID
+	}
+	return records, cursor, more, nil
+}
+
 func applyMutation(app core.App, owner string, m Object, identity string) (Object, error) {
 	if err := validateMutation(m, owner); err != nil {
 		return nil, err
@@ -420,12 +472,19 @@ func applyMutation(app core.App, owner string, m Object, identity string) (Objec
 
 func registerTodo(e *core.ServeEvent) {
 	e.Router.POST("/api/todo/push", func(r *core.RequestEvent) error {
+		generation, err := syncGeneration(r.App)
+		if err != nil {
+			return err
+		}
+		if r.Request.Header.Get("X-Todo-Sync-Generation") != generation {
+			return conflict("Sync generation changed; reset from a snapshot")
+		}
 		var m Object
 		if err := r.BindBody(&m); err != nil {
 			return bad("Invalid JSON")
 		}
 		var ack Object
-		err := r.App.RunInTransaction(
+		err = r.App.RunInTransaction(
 			func(tx core.App) error { var err error; ack, err = applyMutation(tx, r.Auth.Id, m, ""); return err },
 		)
 		if err != nil {
@@ -439,6 +498,13 @@ func registerTodo(e *core.ServeEvent) {
 			return err
 		}
 		q := r.Request.URL.Query()
+		generation, err := syncGeneration(r.App)
+		if err != nil {
+			return err
+		}
+		if q.Get("generation") != generation {
+			return r.JSON(http.StatusOK, Object{"mode": "reset", "generation": generation, "until": current})
+		}
 		parse := func(key string, fallback int64) (int64, error) {
 			if q.Get(key) == "" {
 				return fallback, nil
@@ -495,6 +561,57 @@ func registerTodo(e *core.ServeEvent) {
 		if more {
 			cursor = int64(rows[len(rows)-1].GetInt("revision"))
 		}
-		return r.JSON(http.StatusOK, Object{"changes": changes, "until": until, "cursor": cursor, "hasMore": more})
+		return r.JSON(http.StatusOK, Object{
+			"mode": "changes", "generation": generation, "changes": changes,
+			"until": until, "cursor": cursor, "hasMore": more,
+		})
+	}).Bind(apis.RequireAuth("todo_users"))
+	e.Router.GET("/api/todo/snapshot", func(r *core.RequestEvent) error {
+		q := r.Request.URL.Query()
+		generation, err := syncGeneration(r.App)
+		if err != nil {
+			return err
+		}
+		if q.Get("generation") != generation {
+			return conflict("Sync generation changed; restart snapshot")
+		}
+		kind := q.Get("kind")
+		if kind != "list" && kind != "task" {
+			return bad("Invalid snapshot kind")
+		}
+		current, err := clock(r.App)
+		if err != nil {
+			return err
+		}
+		parseRequired := func(key string) (int64, error) {
+			v, err := strconv.ParseInt(q.Get(key), 10, 64)
+			if err != nil || v < 0 {
+				return 0, bad("Invalid snapshot bounds")
+			}
+			return v, nil
+		}
+		until, err := parseRequired("until")
+		if err != nil {
+			return err
+		}
+		limit := int64(50)
+		if q.Get("limit") != "" {
+			limit, err = parseRequired("limit")
+			if err != nil {
+				return err
+			}
+		}
+		after := q.Get("after")
+		if until > current || limit < 1 || limit > 100 || (after != "" && !uuidPattern.MatchString(after)) {
+			return bad("Invalid snapshot bounds")
+		}
+		records, cursor, more, err := snapshotRecords(r.App, r.Auth.Id, kind, after, until, int(limit))
+		if err != nil {
+			return err
+		}
+		return r.JSON(http.StatusOK, Object{
+			"generation": generation, "until": until, "kind": kind,
+			"records": records, "cursor": cursor, "hasMore": more,
+		})
 	}).Bind(apis.RequireAuth("todo_users"))
 }

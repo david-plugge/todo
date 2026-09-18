@@ -50,6 +50,10 @@ export interface SyncMetadata {
   id: string;
   revision: number;
   cursor?: number;
+  generation?: string;
+  until?: number;
+  kind?: 'task' | 'list';
+  snapshotCursor?: string;
   entityType?: 'task' | 'list';
   entityId?: string;
   payload?: Task | TaskList;

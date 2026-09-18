@@ -63,6 +63,8 @@ Der Backup-/Restore-Cursorvertrag bleibt ein getrennter Livegang-Schritt und wir
 
 Eine eingebettete Go-Migration aktiviert PocketBases IP-basierten Rate-Limiter einmalig. Sie ergänzt methodenspezifische Regeln für dynamische OAuth-Registrierung, Authorization, Consent, Token, Revoke, Verbindungen, MCP sowie Todo-Push und -Pull. Die Migration überschreibt später im Dashboard vorgenommene Änderungen nicht bei jedem Prozessstart. Weil PocketBases globaler Rate-Limit-Middleware vor dem Laden der Record-Authentifizierung läuft, sind diese Regeln bewusst als Guest/IP-Regeln hinterlegt.
 
+Nur PocketBases expliziter `--dev`-Modus deaktiviert die Limits zur Laufzeit, ohne diese Einstellung zu speichern. Die lokale parallele E2E-Suite nutzt diesen Modus, da alle isolierten Browserkontexte dieselbe Loopback-IP teilen. Der Container-Entrypoint akzeptiert kein `--dev`; der Container-Smoke-Test weist den produktiven 429-Pfad separat nach.
+
 Der Limiter lebt im Speicher einer einzelnen Instanz. Ein Prozessneustart setzt seine Zähler zurück; bei einer späteren horizontalen Architektur wäre deshalb zusätzlich ein gemeinsamer Limiter am Edge erforderlich. Für korrekte IP-Schlüssel dürfen ausschließlich Proxy-Header vertraut werden, die der eigene Reverse Proxy entfernt und neu setzt.
 
 Der Cron-Job `freiraumOAuthCleanup` läuft täglich um `03:23 UTC`. Er löscht ausschließlich:

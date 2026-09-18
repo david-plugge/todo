@@ -9,6 +9,13 @@ async function open(name: string = crypto.randomUUID()) {
   const store = createStore(name, { ownerId: 'owner', deviceId: 'device' });
   stores.push(store);
   await store.ready;
+  if (!(await store.db.syncMetadata.get('sync-state')))
+    await store.db.syncMetadata.put({
+      id: 'sync-state',
+      revision: 0,
+      generation: 'generation-a',
+      cursor: 0,
+    });
   return store;
 }
 afterEach(async () => {
@@ -34,7 +41,7 @@ function change(revision: number, id = 'remote'): RemoteChange {
   };
 }
 function page(changes: RemoteChange[], cursor: number, hasMore = false, until = cursor): PullPage {
-  return { changes, cursor, hasMore, until };
+  return { mode: 'changes', generation: 'generation-a', changes, cursor, hasMore, until };
 }
 
 it('persists records and cursor together, rehydrates and continues without re-reading history', async () => {

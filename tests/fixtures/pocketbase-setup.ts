@@ -63,6 +63,7 @@ export default async function setup() {
       binary,
       [
         'serve',
+        '--dev',
         '--http=127.0.0.1:8091',
         `--dir=${temporary}`,
         `--publicDir=${resolve('pb_public')}`,

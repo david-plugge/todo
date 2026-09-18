@@ -1,10 +1,15 @@
 package main
 
 import (
+	"archive/zip"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"net/url"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -16,6 +21,270 @@ import (
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
+
+func TestSyncGenerationAndHistoricalSnapshot(t *testing.T) {
+	app := openTestApp(t, t.TempDir())
+	generation, err := syncGeneration(app)
+	if err != nil || uuid.Validate(generation) != nil {
+		t.Fatalf("invalid sync generation %q: %v", generation, err)
+	}
+	users, err := app.FindCollectionByNameOrId("todo_users")
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := core.NewRecord(users)
+	user.SetEmail("snapshot@example.com")
+	user.SetPassword("long-test-password")
+	if err := app.Save(user); err != nil {
+		t.Fatal(err)
+	}
+	changes, err := app.FindCollectionByNameOrId("todo_changes")
+	if err != nil {
+		t.Fatal(err)
+	}
+	first := "00000000-0000-4000-8000-000000000001"
+	second := "00000000-0000-4000-8000-000000000002"
+	insert := func(entityID string, revision int, title string) {
+		t.Helper()
+		record := core.NewRecord(changes)
+		record.Load(Object{
+			"owner": user.Id, "kind": "task", "entityId": entityID, "revision": revision,
+			"data": Object{"id": entityID, "ownerId": user.Id, "title": title, "remoteRevision": revision},
+		})
+		if err := app.Save(record); err != nil {
+			t.Fatal(err)
+		}
+	}
+	insert(first, 1, "before cutoff")
+	insert(second, 2, "second")
+	insert(first, 3, "after cutoff")
+	records, cursor, more, err := snapshotRecords(app, user.Id, "task", "", 2, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0]["title"] != "before cutoff" || cursor != first || !more {
+		t.Fatalf("unexpected first snapshot page: records=%v cursor=%q more=%v", records, cursor, more)
+	}
+	records, cursor, more, err = snapshotRecords(app, user.Id, "task", cursor, 2, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(records) != 1 || records[0]["title"] != "second" || cursor != "" || more {
+		t.Fatalf("unexpected second snapshot page: records=%v cursor=%q more=%v", records, cursor, more)
+	}
+}
+
+func TestRestoreExtractionRequiresEmptyTargetAndLocksStartup(t *testing.T) {
+	var content bytes.Buffer
+	writer := zip.NewWriter(&content)
+	entry, err := writer.Create("data.db")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := entry.Write([]byte("database")); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	archive := filepath.Join(root, "backup.zip")
+	if err := os.WriteFile(archive, content.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, "restored")
+	restoreID := uuid.NewString()
+	if err := runRestoreNew([]string{"--backup", archive, "--target", target, "--restore-id", restoreID}); err != nil {
+		t.Fatal(err)
+	}
+	if err := refusePendingRestore(target, false); err == nil {
+		t.Fatal("pending restore did not block startup")
+	}
+	marker, err := os.ReadFile(restoreMarker(target))
+	if err != nil || strings.TrimSpace(string(marker)) != restoreID {
+		t.Fatalf("unexpected restore marker %q: %v", marker, err)
+	}
+	if err := runRestoreNew(
+		[]string{"--backup", archive, "--target", target, "--restore-id", uuid.NewString()},
+	); err == nil {
+		t.Fatal("non-empty restore target was accepted")
+	}
+}
+
+func TestRestoreArchiveCannotReplacePendingMarker(t *testing.T) {
+	var content bytes.Buffer
+	writer := zip.NewWriter(&content)
+	for name, value := range map[string]string{"data.db": "database", restoreMarkerName: "attacker-id"} {
+		entry, err := writer.Create(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := entry.Write([]byte(value)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	archive := filepath.Join(root, "backup.zip")
+	if err := os.WriteFile(archive, content.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, "restored")
+	restoreID := uuid.NewString()
+	if err := runRestoreNew([]string{
+		"--backup", archive, "--target", target, "--restore-id", restoreID,
+	}); err == nil {
+		t.Fatal("backup containing restore marker was accepted")
+	}
+	marker, err := os.ReadFile(restoreMarker(target))
+	if err != nil || strings.TrimSpace(string(marker)) != restoreID {
+		t.Fatalf("restore marker was bypassed: %q (%v)", marker, err)
+	}
+}
+
+func TestBinaryHonorsPendingMarkerForCustomDataDir(t *testing.T) {
+	root := t.TempDir()
+	binary := filepath.Join(root, "freiraum-test")
+	build := exec.Command("go", "build", "-o", binary, ".")
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build test binary: %v\n%s", err, output)
+	}
+	directory := filepath.Join(root, "restored-data")
+	if err := os.MkdirAll(directory, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	restoreID := uuid.NewString()
+	if err := os.WriteFile(restoreMarker(directory), []byte(restoreID+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	serve := exec.Command(binary, "serve", "--dir", directory, "--http=127.0.0.1:0")
+	output, err := serve.CombinedOutput()
+	if err == nil || !strings.Contains(string(output), "restore is pending") {
+		t.Fatalf("serve did not reject pending custom data dir: err=%v output=%s", err, output)
+	}
+	if _, err := os.Stat(filepath.Join(directory, "data.db")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("rejected serve mutated pending restore: %v", err)
+	}
+
+	finalize := exec.Command(
+		binary, restoreFinalizeCommand, "--dir", directory, "--restore-id", restoreID,
+	)
+	output, err = finalize.CombinedOutput()
+	if err != nil {
+		t.Fatalf("restore-finalize was blocked for custom data dir: %v\n%s", err, output)
+	}
+	if _, err := os.Stat(restoreMarker(directory)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("restore-finalize left marker: %v", err)
+	}
+}
+
+func TestRestoreFinalizeRotatesGenerationAndAllSessionsIdempotently(t *testing.T) {
+	directory := t.TempDir()
+	app := openTestApp(t, directory)
+	createAuth := func(collection, email string) *core.Record {
+		t.Helper()
+		c, err := app.FindCollectionByNameOrId(collection)
+		if err != nil {
+			t.Fatal(err)
+		}
+		record := core.NewRecord(c)
+		record.SetEmail(email)
+		record.SetPassword("long-test-password")
+		if err := app.Save(record); err != nil {
+			t.Fatal(err)
+		}
+		return record
+	}
+	user := createAuth("todo_users", "restore-user@example.com")
+	superuser := createAuth(core.CollectionNameSuperusers, "restore-admin@example.com")
+	oldUserTokenKey := user.TokenKey()
+	oldSuperuserTokenKey := superuser.TokenKey()
+	oldGeneration, err := syncGeneration(app)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := app.DB().NewQuery(`
+		INSERT INTO _oauth_pending(id,data,expires) VALUES ('pending','{}',9999999999);
+		INSERT INTO _oauth_tokens(hash,kind,family,owner,data,spent,expires)
+		VALUES ('hash','access','family',{:owner},'{}',0,9999999999)
+	`).Bind(dbx.Params{"owner": user.Id}).Execute(); err != nil {
+		t.Fatal(err)
+	}
+	createChallenge := func(collection string, values Object) {
+		t.Helper()
+		c, err := app.FindCollectionByNameOrId(collection)
+		if err != nil {
+			t.Fatal(err)
+		}
+		record := core.NewRecord(c)
+		record.Load(values)
+		if err := app.Save(record); err != nil {
+			t.Fatal(err)
+		}
+	}
+	base := Object{"collectionRef": user.Collection().Id, "recordRef": user.Id}
+	createChallenge(core.CollectionNameMFAs, Object{
+		"collectionRef": base["collectionRef"], "recordRef": base["recordRef"], "method": "otp",
+	})
+	createChallenge(core.CollectionNameOTPs, Object{
+		"collectionRef": base["collectionRef"], "recordRef": base["recordRef"],
+		"password": "123456", "sentTo": "restore-user@example.com",
+	})
+	createChallenge(core.CollectionNameAuthOrigins, Object{
+		"collectionRef": base["collectionRef"], "recordRef": base["recordRef"], "fingerprint": "restore-test",
+	})
+
+	restoreID := uuid.NewString()
+	if err := os.WriteFile(restoreMarker(directory), []byte(restoreID+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := finalizeRestore(app, restoreID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(restoreMarker(directory)); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("restore marker remained: %v", err)
+	}
+	newGeneration, err := syncGeneration(app)
+	if err != nil || newGeneration == oldGeneration || uuid.Validate(newGeneration) != nil {
+		t.Fatalf("generation was not rotated: old=%q new=%q err=%v", oldGeneration, newGeneration, err)
+	}
+	for _, table := range []string{
+		"_oauth_pending", "_oauth_tokens", core.CollectionNameMFAs,
+		core.CollectionNameOTPs, core.CollectionNameAuthOrigins,
+	} {
+		var row struct {
+			Count int `db:"count"`
+		}
+		if err := app.DB().NewQuery("SELECT COUNT(*) count FROM " + table).One(&row); err != nil {
+			t.Fatal(err)
+		}
+		if row.Count != 0 {
+			t.Errorf("%s retained %d restored session records", table, row.Count)
+		}
+	}
+	reloadedUser, err := app.FindRecordById("todo_users", user.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reloadedSuperuser, err := app.FindRecordById(core.CollectionNameSuperusers, superuser.Id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloadedUser.TokenKey() == oldUserTokenKey || reloadedSuperuser.TokenKey() == oldSuperuserTokenKey {
+		t.Fatal("restored auth token keys were not rotated")
+	}
+	if err := finalizeRestore(app, restoreID); err != nil {
+		t.Fatalf("idempotent finalize failed: %v", err)
+	}
+	stableGeneration, err := syncGeneration(app)
+	if err != nil || stableGeneration != newGeneration {
+		t.Fatalf("idempotent finalize rotated generation again: %q != %q (%v)", stableGeneration, newGeneration, err)
+	}
+}
 
 func TestProductionConfig(t *testing.T) {
 	valid := []string{
@@ -173,6 +442,7 @@ func TestProductionRateLimitsMigration(t *testing.T) {
 		"POST /api/todo/mcp":       {600, 60},
 		"POST /api/todo/push":      {600, 60},
 		"GET /api/todo/pull":       {6000, 60},
+		"GET /api/todo/snapshot":   {6000, 60},
 	} {
 		rule, ok := limits.FindRateLimitRule(
 			[]string{label},
@@ -189,6 +459,40 @@ func TestProductionRateLimitsMigration(t *testing.T) {
 		if rule.MaxRequests != expected.max || rule.Duration != expected.duration {
 			t.Errorf("unexpected rate limit %q: %+v", label, rule)
 		}
+	}
+}
+
+func TestDevRateLimitOverrideIsRuntimeOnly(t *testing.T) {
+	directory := t.TempDir()
+	production := openTestApp(t, directory)
+	if !production.Settings().RateLimits.Enabled {
+		t.Fatal("migration did not persist enabled rate limits")
+	}
+	if err := production.ClearBootstrap(); err != nil {
+		t.Fatal(err)
+	}
+
+	dev := pocketbase.NewWithConfig(pocketbase.Config{DefaultDev: true, DefaultDataDir: directory})
+	if err := dev.Bootstrap(); err != nil {
+		t.Fatal(err)
+	}
+	if err := dev.RunAllMigrations(); err != nil {
+		t.Fatal(err)
+	}
+	if !dev.Settings().RateLimits.Enabled {
+		t.Fatal("persisted setting was disabled before runtime configuration")
+	}
+	configureRuntimeRateLimits(dev)
+	if dev.Settings().RateLimits.Enabled {
+		t.Fatal("dev runtime kept rate limits enabled")
+	}
+	if err := dev.ClearBootstrap(); err != nil {
+		t.Fatal(err)
+	}
+
+	reopened := openTestApp(t, directory)
+	if !reopened.Settings().RateLimits.Enabled {
+		t.Fatal("dev runtime override was persisted")
 	}
 }
 

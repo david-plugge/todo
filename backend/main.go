@@ -61,6 +61,15 @@ func validateProductionConfig() error {
 	return nil
 }
 
+func configureRuntimeRateLimits(app core.App) {
+	// PocketBase's limiter is intentionally IP-wide. All isolated Playwright
+	// contexts share one loopback IP, so dev-mode suites would otherwise consume
+	// each other's production buckets. This is runtime-only and never saved.
+	if app.IsDev() {
+		app.Settings().RateLimits.Enabled = false
+	}
+}
+
 func main() {
 	// The container entrypoint calls this before PocketBase opens the data directory.
 	if len(os.Args) == 2 && os.Args[1] == productionCheckCommand {
@@ -69,8 +78,18 @@ func main() {
 		}
 		return
 	}
+	if len(os.Args) > 1 && os.Args[1] == restoreNewCommand {
+		if err := runRestoreNew(os.Args[2:]); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	app := pocketbase.New()
+	finalizingRestore := len(os.Args) > 1 && os.Args[1] == restoreFinalizeCommand
+	registerRestoreGuard(app, finalizingRestore)
 	registerUserCommand(app)
+	registerBackupCommand(app)
+	registerRestoreFinalizeCommand(app)
 	if err := registerMaintenance(app); err != nil {
 		log.Fatal(err)
 	}
@@ -79,6 +98,7 @@ func main() {
 	migratecmd.MustRegister(app, app.RootCmd, migratecmd.Config{Automigrate: false})
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
 		e.InstallerFunc = nil
+		configureRuntimeRateLimits(e.App)
 		registerTodo(e)
 		if err := registerOAuth(e); err != nil {
 			return err

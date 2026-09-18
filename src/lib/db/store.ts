@@ -220,6 +220,7 @@ export function createStore(
   return {
     db,
     adapter,
+    syncIdentity: account ? { ownerId: account.ownerId, deviceId: account.deviceId } : undefined,
     tasks,
     lists,
     outbox,

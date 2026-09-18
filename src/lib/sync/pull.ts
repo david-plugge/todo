@@ -1,6 +1,7 @@
 import { validEntity } from '../domain/validation';
 import type { DexieAdapter } from '../db/adapter';
 import type { Task, TaskList, SyncMetadata } from '../domain/models';
+import { SnapshotResetWorker, type PullReset, type SnapshotPage } from './snapshot';
 
 export interface RemoteChange {
   revision: number;
@@ -9,6 +10,8 @@ export interface RemoteChange {
   payload: Task | TaskList;
 }
 export interface PullPage {
+  mode: 'changes';
+  generation: string;
   changes: RemoteChange[];
   cursor: number;
   until: number;
@@ -20,7 +23,19 @@ export interface PullTransport {
     until: number | undefined,
     limit: number,
     signal: AbortSignal,
-  ): Promise<PullPage>;
+    generation?: string,
+  ): Promise<PullPage | PullReset>;
+  fetchSnapshotPage?(
+    generation: string,
+    until: number,
+    kind: 'task' | 'list',
+    after: string,
+    limit: number,
+    signal: AbortSignal,
+  ): Promise<SnapshotPage>;
+}
+function validGeneration(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= 128;
 }
 
 /** Validate before opening a local write transaction or advancing its durable cursor. */
@@ -28,11 +43,14 @@ function validate(
   page: PullPage,
   after: number,
   until: number | undefined,
+  generation: string | undefined,
   ownerId: string,
   limit: number,
 ) {
   if (
-    !page ||
+    page?.mode !== 'changes' ||
+    !validGeneration(page.generation) ||
+    (generation !== undefined && page.generation !== generation) ||
     !Array.isArray(page.changes) ||
     page.changes.length > limit ||
     !Number.isSafeInteger(page.cursor) ||
@@ -77,6 +95,7 @@ export class PullWorker {
     private readonly transport: PullTransport,
     private readonly ownerId: string,
     private readonly limit = 50,
+    private readonly deviceId?: string,
   ) {}
   pull(): Promise<void> {
     if (this.flight) return this.flight;
@@ -137,21 +156,44 @@ export class PullWorker {
     await this.drain();
     let until: number | undefined;
     while (!signal.aborted) {
-      const after = (await this.adapter.db.syncMetadata.get('pull-cursor'))?.cursor ?? 0;
+      const state = await this.adapter.db.syncMetadata.get('sync-state');
+      const after =
+        state?.cursor ?? (await this.adapter.db.syncMetadata.get('pull-cursor'))?.cursor ?? 0;
+      const generation = state?.generation;
       if (until !== undefined && after >= until) break;
-      const page = await this.transport.fetchPage(after, until, this.limit, signal);
+      const page = await this.transport.fetchPage(after, until, this.limit, signal, generation);
       signal.throwIfAborted();
-      validate(page, after, until, this.ownerId, this.limit);
+      if (page.mode === 'reset') {
+        await new SnapshotResetWorker(
+          this.adapter,
+          this.transport,
+          this.ownerId,
+          this.deviceId,
+          this.limit,
+        ).reset(page, signal);
+        break;
+      }
+      validate(page, after, until, generation, this.ownerId, this.limit);
       until = page.until;
       const applied = await this.adapter.write(['tasks', 'lists', 'outbox'], async () => {
         signal.throwIfAborted();
-        const current = (await this.adapter.db.syncMetadata.get('pull-cursor'))?.cursor ?? 0;
+        const currentState = await this.adapter.db.syncMetadata.get('sync-state');
+        const current =
+          currentState?.cursor ??
+          (await this.adapter.db.syncMetadata.get('pull-cursor'))?.cursor ??
+          0;
         // A second tab may already have advanced the shared cursor while HTTP was in flight.
-        if (current !== after) return false;
+        if (current !== after || currentState?.generation !== generation) return false;
         for (const change of page.changes) await this.apply(change);
         await this.adapter.db.syncMetadata.put({
           id: 'pull-cursor',
           revision: 0,
+          cursor: page.cursor,
+        });
+        await this.adapter.db.syncMetadata.put({
+          id: 'sync-state',
+          revision: 0,
+          generation: page.generation,
           cursor: page.cursor,
         });
         return true;

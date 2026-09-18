@@ -19,6 +19,13 @@
     pushing = true;
     try {
       await store.ready;
+      if (!(await store.db.syncMetadata.get('sync-state')))
+        await store.db.syncMetadata.put({
+          id: 'sync-state',
+          revision: 0,
+          generation: 'internal-sync-lab',
+          cursor: 0,
+        });
       const count = await worker!.push();
       syncStatus = `${count} ACK(s) bestätigt`;
     } catch (error) {

@@ -27,7 +27,13 @@ export class SyncEngine {
   ) {
     const transport = pocketBaseTransport(pb, ownerId);
     this.pushWorker = new PushWorker(store.adapter, transport);
-    this.pullWorker = new PullWorker(store.adapter, transport, ownerId);
+    this.pullWorker = new PullWorker(
+      store.adapter,
+      transport,
+      ownerId,
+      50,
+      store.syncIdentity?.deviceId,
+    );
   }
   start() {
     const wake = () => this.trigger();
@@ -77,7 +83,14 @@ export class SyncEngine {
       return this.flight;
     }
     this.flight = this.run().finally(() => {
+      const restart = this.again && !this.disposed && !this.paused;
       this.flight = undefined;
+      // A wake queued after run()'s final loop check but before this finalizer still
+      // observed the old flight. Carry that wake into a fresh flight instead of losing it.
+      if (restart) {
+        this.again = false;
+        void this.sync().catch(() => {});
+      }
     });
     return this.flight;
   }
@@ -99,6 +112,7 @@ export class SyncEngine {
       }
       this.status({ phase: 'syncing', message: 'Synchronisiere …' });
       try {
+        await this.pullWorker.pull();
         await this.pushWorker.push();
         await this.pullWorker.pull();
         if (this.disposed || this.paused) return;
@@ -134,6 +148,11 @@ export class SyncEngine {
         // Pull independent entities even when a pending push conflicts; reconcile defers its entity.
         try {
           await this.pullWorker.pull();
+          const pending = await this.store.db.outbox.toArray();
+          if (!pending.length) {
+            clearTimeout(this.timer);
+            this.status({ phase: 'idle', message: 'Synchronisiert' });
+          }
         } catch {
           /* Original sync error stays visible. */
         }

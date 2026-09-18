@@ -51,7 +51,8 @@
   const plannedCount = $derived(all.filter((task) => !!task.plannedDate && !task.completed).length);
   const completedCount = $derived(all.filter((task) => task.completed).length);
   async function submit() {
-    if (await create(listName.trim())) listName = '';
+    const draft = listName;
+    if ((await create(draft.trim())) && listName === draft) listName = '';
   }
   function openDeleteDialog(list: TaskList) {
     selectedList = list;
@@ -180,12 +181,12 @@
     class="mx-1 my-2.5 flex gap-1 max-mobile:mb-0 max-mobile:max-w-[250px]"
     onsubmit={(event) => {
       event.preventDefault();
-      if (ready && !busy && listName.trim()) void submit();
+      if (ready && listName.trim()) void submit();
     }}
   >
     <input
       class="w-full min-w-0 rounded-md border border-transparent bg-transparent p-2 text-base text-text focus:border-border focus:shadow-none"
-      disabled={!ready || busy}
+      disabled={!ready}
       aria-label="Neue Liste"
       placeholder="Neue Liste …"
       enterkeyhint="done"

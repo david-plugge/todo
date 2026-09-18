@@ -8,6 +8,12 @@ async function open(name: string = crypto.randomUUID()) {
   const store = createStore(name);
   stores.push(store);
   await store.ready;
+  await store.db.syncMetadata.put({
+    id: 'sync-state',
+    revision: 0,
+    generation: 'generation-a',
+    cursor: 0,
+  });
   return store;
 }
 afterEach(async () => {
@@ -50,6 +56,18 @@ class TestRemote implements PushTransport {
 }
 
 describe('Spike 5: immutable push snapshots, ACK and restart safety', () => {
+  it('does not push before a server generation has been confirmed', async () => {
+    const store = await open();
+    await store.createTask('wait for handshake');
+    await store.db.syncMetadata.delete('sync-state');
+    const remote = new TestRemote();
+    await expect(new PushWorker(store.adapter, remote).push()).rejects.toThrow(
+      'Sync generation has not been confirmed',
+    );
+    expect(remote.requests).toHaveLength(0);
+    expect(await store.db.outbox.count()).toBe(1);
+  });
+
   it('ACK v5 keeps v6 pending; pushing v6 converges and clears only that revision', async () => {
     const store = await open();
     const remote = new TestRemote();
