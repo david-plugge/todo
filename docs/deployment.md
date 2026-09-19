@@ -30,7 +30,29 @@ docker compose ps
 curl --fail "$TODO_PUBLIC_URL/api/health"
 ```
 
-Compose bindet standardmäßig nur an `127.0.0.1:8090`. `FREIRAUM_BIND_ADDRESS`, `FREIRAUM_PORT` und `FREIRAUM_TAG` können für die Zielumgebung überschrieben werden. Das Root-Dateisystem ist read-only; nur `/app/pb_data` ist persistent und `/tmp` ist ein flüchtiges `tmpfs`.
+Compose bindet standardmäßig nur an `127.0.0.1:8090`. `FREIRAUM_BIND_ADDRESS`, `FREIRAUM_PORT`, `FREIRAUM_IMAGE` und `FREIRAUM_TAG` können für die Zielumgebung überschrieben werden. Das Root-Dateisystem ist read-only; nur `/app/pb_data` ist persistent und `/tmp` ist ein flüchtiges `tmpfs`.
+
+## GitHub Container Registry
+
+Pushes auf `main` und manuell gestartete Publish-Workflows erzeugen ein Multi-Arch-Image für `linux/amd64` und `linux/arm64` unter `ghcr.io/david-plugge/todo`. Jeder Build erhält den unveränderlichen Tag `sha-<vollständiger-git-sha>`. Der bewegliche Tag `latest` wird ausschließlich für Builds von `main` gesetzt. Das Image enthält außerdem OCI-Quell- und Revisionslabels sowie Provenance- und SBOM-Attestierungen.
+
+Für ein Deployment wird nicht `latest`, sondern der SHA-Tag zusammen mit dem von GHCR ausgegebenen Multi-Arch-Manifest-Digest verwendet. Docker akzeptiert dafür eine kombinierte Tag-und-Digest-Referenz:
+
+```dotenv
+FREIRAUM_IMAGE=ghcr.io/david-plugge/todo
+FREIRAUM_TAG=sha-0123456789abcdef0123456789abcdef01234567@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+```
+
+Damit bleibt im Compose-Vertrag sichtbar, welcher Commit deployt wurde, während der Digest exakt die geprüften Bytes festlegt. Auf dem Zielhost wird das Image explizit gepullt; `--no-build` verhindert, dass Compose stattdessen aus dem lokalen Checkout baut:
+
+```sh
+docker compose pull freiraum
+docker compose up -d --no-build freiraum
+docker compose ps
+curl --fail "$TODO_PUBLIC_URL/api/health"
+```
+
+Private GHCR-Packages erfordern auf dem Zielhost eine Anmeldung mit ausschließlich `read:packages`. Bei einem öffentlichen Package ist für das Pulling keine Anmeldung erforderlich. Der Publish-Workflow verwendet ausschließlich das kurzlebige `GITHUB_TOKEN` mit `contents: read` und `packages: write`; ein dauerhaftes Registry-Secret ist nicht notwendig.
 
 Einen App-Benutzer legt ein einmaliger Admin-Job an. Das Passwort wird nur als Prozessumgebung übergeben:
 

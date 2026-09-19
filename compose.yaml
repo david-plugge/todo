@@ -1,6 +1,6 @@
 services:
   freiraum:
-    image: freiraum:${FREIRAUM_TAG:-local}
+    image: ${FREIRAUM_IMAGE:-freiraum}:${FREIRAUM_TAG:-local}
     build:
       context: .
     restart: unless-stopped
