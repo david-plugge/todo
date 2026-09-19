@@ -2,6 +2,7 @@ import { triggerSync } from './navigation-helpers';
 import { setDate } from './date-picker-helpers';
 import { expect, test, type Page } from '@playwright/test';
 import type { Task } from '../../src/lib/domain/models';
+import { backendAddress } from '../fixtures/backend-address';
 async function login(page: Page, name: string) {
   await page.goto('/account');
   await page.getByLabel('E-Mail', { exact: true }).fill(`${name}@example.test`);
@@ -46,8 +47,12 @@ async function expectDateTriggerPositionToStayPut(page: Page, title: string, lab
   expect(taskId).not.toBeNull();
   const row = page.locator(`[data-testid="account-task"][data-sort-id="${taskId}"]`);
   const trigger = row.getByLabel(label, { exact: true });
+  await expect(row).toHaveAttribute('data-expanded', 'false');
   const closed = (await trigger.boundingBox())!;
   await row.getByTestId('task-title').click();
+  // Measure only once the details are rendered; the chip must not have moved.
+  await expect(row).toHaveAttribute('data-expanded', 'true');
+  await expect(row.getByTestId('task-editor-footer')).toBeVisible();
   const open = (await trigger.boundingBox())!;
   expect(Math.abs(open.x - closed.x)).toBeLessThan(1);
   expect(Math.abs(open.y - closed.y)).toBeLessThan(1);
@@ -187,6 +192,8 @@ test('offline autosave: title blur plus checkbox, date changes, list selection a
   await page.getByRole('button', { name: 'Details schließen', exact: true }).click();
   await expectDateTriggerPositionToStayPut(page, 'Due only', 'Fällig am bearbeiten');
   await page.setViewportSize({ width: 320, height: 740 });
+  // The mobile navigation only exists after the layout switched to the narrow grid.
+  await expect(page.getByRole('button', { name: 'Mehr', exact: true })).toBeVisible();
   await expectDateTriggerPositionToStayPut(page, 'Due only', 'Fällig am bearbeiten');
   await task(page, 'Direct edit').getByTestId('task-title').click();
   await expect(
@@ -328,7 +335,7 @@ test('real touch pointer drag at mobile width reorders tasks and lists without a
   browser,
 }) => {
   const context = await browser.newContext({
-    baseURL: 'http://127.0.0.1:8091',
+    baseURL: backendAddress(),
     viewport: { width: 390, height: 844 },
     hasTouch: true,
     isMobile: true,
@@ -474,6 +481,11 @@ test('dropping a task on a sidebar list assigns it only on release and survives 
     await page.mouse.move(from.x + from.width - 8, from.y + 12);
     await page.mouse.down();
     await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 });
+    // Only the list under the pointer may light up; a neighbour would receive the drop.
+    await expect(destination.locator('..').getByTestId('list-drop-target')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
     await expect(page.locator('[data-testid="list-drop-target"][data-active="true"]')).toHaveCount(
       1,
     );

@@ -5,6 +5,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { Task } from '../../src/lib/domain/models';
 import { bootstrapSyncGeneration, changesPull } from './sync-api';
+import { backendAddress } from '../fixtures/backend-address';
 
 async function login(request: APIRequestContext, name: string) {
   const response = await request.post('/api/collections/todo_users/auth-with-password', {
@@ -24,7 +25,7 @@ async function login(request: APIRequestContext, name: string) {
 async function connect(token: string) {
   const client = new Client({ name: 'todo-integration-test', version: '1.0.0' });
   await client.connect(
-    new StreamableHTTPClientTransport(new URL('http://127.0.0.1:8091/api/todo/mcp'), {
+    new StreamableHTTPClientTransport(new URL(`${backendAddress()}/api/todo/mcp`), {
       requestInit: { headers: { Authorization: `Bearer ${token}` } },
     }),
   );
@@ -214,7 +215,7 @@ test('MCP HTTP boundary requires account auth, validates protocol/origin and rej
     (
       await request.post('/api/todo/mcp', {
         data,
-        headers: { ...headers, Origin: 'http://127.0.0.1:8091' },
+        headers: { ...headers, Origin: backendAddress() },
       })
     ).status(),
   ).toBe(200);

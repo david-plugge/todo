@@ -5,6 +5,7 @@ import { compareRank } from '../../src/lib/ranking/rank';
 import { stampChanges } from '../../src/lib/domain/versions';
 import type { Task } from '../../src/lib/domain/models';
 import { bootstrapSyncGeneration, syncHeaders } from './sync-api';
+import { backendAddress } from '../fixtures/backend-address';
 const devices = ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'];
 async function login(page: Page, name: string) {
   await page.goto('/account');
@@ -63,7 +64,7 @@ for (const order of ['ab', 'ba'])
     const contexts = await Promise.all(
       devices.map((_, index) =>
         browser.newContext({
-          baseURL: 'http://127.0.0.1:8091',
+          baseURL: backendAddress(),
           timezoneId: index === 0 ? 'America/Los_Angeles' : 'Asia/Tokyo',
         }),
       ),
