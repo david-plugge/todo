@@ -3,7 +3,8 @@
   import { goto } from '$app/navigation';
   import { resolve } from '$app/paths';
   import AccountSettings from './AccountSettings.svelte';
-  import { Collapsible, Dialog } from 'bits-ui';
+  import { Collapsible } from 'bits-ui';
+  import { Drawer } from 'vaul-svelte';
   import { Check, ChevronDown, ListTodo, Sun, CalendarDays, Menu, X } from '@lucide/svelte';
   import { onMount, untrack } from 'svelte';
   import { useLiveQuery } from '@tanstack/svelte-db';
@@ -62,13 +63,17 @@
     lists.data.filter((list) => list.deletedAt === undefined).sort(compareRank),
   );
 
+  // Flat bar: no cards, no borders. The active tab is carried by colour alone.
+  function navItem(active: boolean) {
+    return `flex min-h-[52px] cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-0 bg-transparent px-0.5 py-1 text-[11px] transition-colors ${active ? 'text-accent' : 'text-muted'}`;
+  }
+
   function focusDrawer(event: Event) {
     event.preventDefault();
     requestAnimationFrame(() => {
       if (!drawer || !drawerContent || drawerContent.contains(document.activeElement)) return;
-      const listInput = drawerContent.querySelector<HTMLInputElement>('[aria-label="Neue Liste"]');
-      if (listInput && !listInput.disabled) listInput.focus();
-      else drawerContent.querySelector<HTMLButtonElement>('[aria-label="Menü schließen"]')?.focus();
+      // Never open the on-screen keyboard on mount; the close button is a safe landing spot.
+      drawerContent.querySelector<HTMLButtonElement>('[aria-label="Menü schließen"]')?.focus();
     });
   }
 
@@ -218,56 +223,56 @@
     />
   {/snippet}
   {#if mobile}
-    <Dialog.Root bind:open={drawer}>
+    <Drawer.Root bind:open={drawer}>
       <nav
-        class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 gap-1 border-t border-border bg-canvas px-2.5 pt-2 pb-[calc(8px+env(safe-area-inset-bottom))]"
+        class="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 gap-1 border-t border-border bg-canvas px-2 pt-1.5 pb-[calc(6px+env(safe-area-inset-bottom))]"
         aria-label="Hauptnavigation"
       >
-        <button
-          class="flex min-h-[50px] cursor-pointer flex-col items-center justify-center gap-1.25 rounded-md border border-border bg-surface px-0.5 py-1.5 text-[11px] text-accent hover:bg-[#edf0e7]"
-          class:bg-selected={!settings && view === 'today'}
-          onclick={() => selectView('today')}><Sun size={20} /><span>Mein Tag</span></button
+        <button class={navItem(!settings && view === 'today')} onclick={() => selectView('today')}
+          ><Sun size={22} aria-hidden="true" /><span>Mein Tag</span></button
         >
         <button
-          class="flex min-h-[50px] cursor-pointer flex-col items-center justify-center gap-1.25 rounded-md border border-border bg-surface px-0.5 py-1.5 text-[11px] text-accent hover:bg-[#edf0e7]"
-          class:bg-selected={!settings && view === 'planned'}
+          class={navItem(!settings && view === 'planned')}
           onclick={() => selectView('planned')}
-          ><CalendarDays size={20} /><span>Geplant</span></button
+          ><CalendarDays size={22} aria-hidden="true" /><span>Geplant</span></button
         >
-        <button
-          class="flex min-h-[50px] cursor-pointer flex-col items-center justify-center gap-1.25 rounded-md border border-border bg-surface px-0.5 py-1.5 text-[11px] text-accent hover:bg-[#edf0e7]"
-          class:bg-selected={!settings && view === 'all'}
-          onclick={() => selectView('all')}><ListTodo size={20} /><span>Alle Aufgaben</span></button
+        <button class={navItem(!settings && view === 'all')} onclick={() => selectView('all')}
+          ><ListTodo size={22} aria-hidden="true" /><span>Alle Aufgaben</span></button
         >
-        <Dialog.Trigger
-          class={`flex min-h-[50px] cursor-pointer flex-col items-center justify-center gap-1.25 rounded-md border border-border px-0.5 py-1.5 text-[11px] text-accent hover:bg-[#edf0e7] data-[state=open]:bg-selected ${settings || !['today', 'planned', 'all'].includes(view) ? 'bg-selected' : 'bg-surface'}`}
-          ><Menu size={20} /><span>Mehr</span></Dialog.Trigger
+        <Drawer.Trigger class={navItem(settings || !['today', 'planned', 'all'].includes(view))}
+          ><Menu size={22} aria-hidden="true" /><span>Mehr</span></Drawer.Trigger
         >
       </nav>
-      <Dialog.Portal>
-        <Dialog.Overlay class="fixed inset-0 z-100 bg-[#19221b66]" />
-        <Dialog.Content
+      <Drawer.Portal>
+        <Drawer.Overlay class="fixed inset-0 z-100 bg-overlay" />
+        <Drawer.Content
           bind:ref={drawerContent}
           onOpenAutoFocus={focusDrawer}
-          class="fixed inset-x-0 bottom-0 z-101 block max-h-[85dvh] min-h-0 overflow-y-auto overscroll-contain rounded-t-[20px] bg-canvas px-4 pt-4 pb-[calc(16px+env(safe-area-inset-bottom))] shadow-[0_-12px_40px_#19221b22] motion-safe:animate-[drawer-in_180ms_ease-out]"
+          class="fixed inset-x-0 bottom-0 z-101 flex max-h-[85dvh] flex-col rounded-t-[20px] bg-surface shadow-drawer outline-none"
           data-workspace
         >
-          <div use:dragging.controls>
+          <Drawer.Handle
+            class="mx-auto mt-2.5 mb-1 h-1 w-10 shrink-0 rounded-full bg-border-strong"
+          />
+          <div
+            class="min-h-0 overflow-y-auto overscroll-contain px-4 pt-2 pb-[calc(16px+env(safe-area-inset-bottom))]"
+            use:dragging.controls
+          >
             <div class="flex items-center justify-between">
-              <Dialog.Title class="text-base font-semibold">Deine Aufgaben</Dialog.Title
-              ><Dialog.Close
+              <Drawer.Title class="text-base font-semibold">Deine Aufgaben</Drawer.Title
+              ><Drawer.Close
                 class="min-h-11 min-w-11 border-0 bg-transparent"
-                aria-label="Menü schließen"><X size={20} /></Dialog.Close
+                aria-label="Menü schließen"><X size={20} /></Drawer.Close
               >
             </div>
-            <Dialog.Description class="sr-only"
-              >Alle Ansichten, deine Listen und Einstellungen.</Dialog.Description
+            <Drawer.Description class="sr-only"
+              >Alle Ansichten, deine Listen und Einstellungen.</Drawer.Description
             >
             {@render sidebar()}
           </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   {:else}
     {@render sidebar()}
   {/if}
@@ -399,7 +404,7 @@
   >
     <div class="flex min-w-0 items-center gap-2">
       <span
-        class={`size-2 shrink-0 rounded-full ${syncPhase === 'error' ? 'bg-danger' : syncPhase === 'offline' || outbox.data.length > 0 ? 'bg-[#9a6b25]' : 'bg-[#5f7f55]'}`}
+        class={`size-2 shrink-0 rounded-full ${syncPhase === 'error' ? 'bg-danger' : syncPhase === 'offline' || outbox.data.length > 0 ? 'bg-warning' : 'bg-success'}`}
         aria-hidden="true"
       ></span><span data-testid="account-sync-status">{syncStatus}</span>
     </div>

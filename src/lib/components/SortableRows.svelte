@@ -107,7 +107,7 @@
 >
   {#each shown as item (item.id)}
     <div
-      class="relative rounded-sm hover:[&_article:not([data-expanded=true])]:bg-[#f5f5ee]"
+      class="relative rounded-sm hover:[&_article:not([data-expanded=true])]:bg-hover-soft"
       data-sortable-row
       data-sort-id={item.id}
       aria-label={itemLabel(item)}

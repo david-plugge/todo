@@ -30,9 +30,10 @@
   }
 </script>
 
+<!-- The field is opened deliberately and shows a caret, so the global focus ring only adds noise. -->
 <input
   use:focusTitle
-  class="w-full rounded-none border-0 bg-transparent p-0 text-sm leading-[1.6] font-normal text-inherit focus:shadow-none"
+  class="w-full rounded-none border-0 bg-transparent p-0 text-sm leading-[1.6] font-normal text-inherit focus:shadow-none focus-visible:outline-none"
   data-inline-task-title
   aria-label="Titel bearbeiten"
   bind:value={draft}

@@ -10,8 +10,9 @@ async function login(page: Page, name: string) {
 
 test('renames and deletes a list while keeping its tasks', async ({ page }) => {
   await login(page, 'list-actions');
-  await page.getByLabel('Neue Liste', { exact: true }).fill('Projekte');
-  await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+  await page.getByLabel('Name der neuen Liste', { exact: true }).fill('Projekte');
+  await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
   await page.getByLabel('Neuer Task', { exact: true }).fill('Bleibt erhalten');
   await page.getByLabel('Liste', { exact: true }).selectOption({ label: 'Projekte' });
   await page.getByRole('button', { name: 'Task erstellen', exact: true }).click();
@@ -50,8 +51,9 @@ test('deletes active and completed tasks when the list delete option is checked'
   context,
 }) => {
   await login(page, 'list-actions-delete-tasks');
-  await page.getByLabel('Neue Liste', { exact: true }).fill('Archiv');
-  await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+  await page.getByLabel('Name der neuen Liste', { exact: true }).fill('Archiv');
+  await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
   for (const title of ['Aktiv', 'Erledigt']) {
     await page.getByLabel('Neuer Task', { exact: true }).fill(title);
     await page.getByLabel('Liste', { exact: true }).selectOption({ label: 'Archiv' });
@@ -94,8 +96,9 @@ test('list actions are reachable from the mobile drawer', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await login(page, 'list-actions-mobile');
   await page.getByRole('button', { name: 'Mehr', exact: true }).click();
-  await page.getByLabel('Neue Liste', { exact: true }).fill('Unterwegs');
-  await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+  await page.getByLabel('Name der neuen Liste', { exact: true }).fill('Unterwegs');
+  await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
   await page.getByLabel('Optionen für Unterwegs', { exact: true }).click();
   await page.getByRole('menuitem', { name: 'Umbenennen', exact: true }).click();
   await page.getByLabel('Listenname', { exact: true }).fill('Erledigungen');
@@ -105,8 +108,9 @@ test('list actions are reachable from the mobile drawer', async ({ page }) => {
 
 test('inline rename cancels with Escape and saves when focus leaves the name', async ({ page }) => {
   await login(page, 'list-actions-inline');
-  await page.getByLabel('Neue Liste', { exact: true }).fill('Projekte');
-  await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+  await page.getByLabel('Name der neuen Liste', { exact: true }).fill('Projekte');
+  await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
 
   await page.getByLabel('Optionen für Projekte', { exact: true }).click();
   await page.getByRole('menuitem', { name: 'Umbenennen', exact: true }).click();
@@ -118,6 +122,6 @@ test('inline rename cancels with Escape and saves when focus leaves the name', a
   await page.getByLabel('Optionen für Projekte', { exact: true }).click();
   await page.getByRole('menuitem', { name: 'Umbenennen', exact: true }).click();
   await page.getByLabel('Listenname', { exact: true }).fill('Privat');
-  await page.getByLabel('Neue Liste', { exact: true }).focus();
+  await page.getByRole('button', { name: 'Neue Liste', exact: true }).focus();
   await expect(page.getByTestId('account-list')).toHaveText('Privat');
 });

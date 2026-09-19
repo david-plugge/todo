@@ -20,7 +20,7 @@
 </script>
 
 <div
-  class={`pointer-events-none absolute inset-0 rounded-md ${items.length > 0 ? 'bg-[#dce9d255] outline-2 -outline-offset-2 outline-focus' : ''}`}
+  class={`pointer-events-none absolute inset-0 rounded-md ${items.length > 0 ? 'bg-drop outline-2 -outline-offset-2 outline-focus' : ''}`}
   data-testid="list-drop-target"
   data-active={items.length > 0}
   aria-label={`Nach ${name} verschieben`}

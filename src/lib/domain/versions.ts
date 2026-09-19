@@ -2,6 +2,7 @@ import type { FieldVersions, Task, TaskList } from './models';
 
 export const taskFields = [
   'title',
+  'description',
   'completed',
   'deletedAt',
   'rank',

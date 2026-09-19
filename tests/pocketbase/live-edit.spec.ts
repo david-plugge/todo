@@ -151,8 +151,10 @@ test('offline autosave: title blur plus checkbox, date changes, list selection a
   await expect(page.getByTestId('task-composer-footer')).toBeHidden();
   await expect(page.getByTestId('account-task')).toHaveCount(0);
 
-  await page.getByLabel('Neue Liste', { exact: true }).fill('Inbox');
-  await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+
+  await page.getByLabel('Name der neuen Liste', { exact: true }).fill('Inbox');
+  await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
   await create(page, 'Original');
   await synced(page);
   const originalId = (await records(page)).find((item) => item.title === 'Original')!.id;
@@ -338,9 +340,10 @@ test('real touch pointer drag at mobile width reorders tasks and lists without a
     await login(page, 'touch-drag');
     await page.getByRole('button', { name: 'Mehr', exact: true }).click();
     for (const name of ['First list', 'Second list']) {
-      await page.getByLabel('Neue Liste', { exact: true }).fill(name);
-      await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
-      await expect(page.getByLabel('Neue Liste', { exact: true })).toHaveValue('');
+      await page.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+      await page.getByLabel('Name der neuen Liste', { exact: true }).fill(name);
+      await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
+      await expect(page.getByLabel('Name der neuen Liste', { exact: true })).toHaveCount(0);
     }
     const session = await context.newCDPSession(page);
     async function touch(from: { x: number; y: number }, to: { x: number; y: number }) {
@@ -456,9 +459,10 @@ test('dropping a task on a sidebar list assigns it only on release and survives 
   await page.getByRole('button', { name: /Alle Aufgaben/ }).click();
   await create(page, 'Move me');
   for (const name of ['Source list', 'Target list']) {
-    await page.getByLabel('Neue Liste', { exact: true }).fill(name);
-    await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
-    await expect(page.getByLabel('Neue Liste', { exact: true })).toHaveValue('');
+    await page.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+    await page.getByLabel('Name der neuen Liste', { exact: true }).fill(name);
+    await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
+    await expect(page.getByLabel('Name der neuen Liste', { exact: true })).toHaveCount(0);
   }
   await synced(page);
   await page.evaluate(() => navigator.serviceWorker.ready.then(() => true));
@@ -518,4 +522,36 @@ test('dropping a task on a sidebar list assigns it only on release and survives 
   await context.setOffline(false);
   await triggerSync(page);
   await synced(page);
+});
+
+test('task notes render as sanitized markdown and survive a reload', async ({ page }) => {
+  await login(page, 'task-notes');
+  await create(page, 'Steuer');
+  await synced(page);
+  const row = page.getByTestId('account-task').filter({ hasText: 'Steuer' });
+  await row.getByRole('button', { name: 'Steuer bearbeiten', exact: true }).click();
+  await row.getByRole('button', { name: 'Beschreibung hinzufügen', exact: true }).click();
+  const note = row.getByLabel('Beschreibung bearbeiten', { exact: true });
+  await note.fill('Belege **sammeln**\n\n- Lohnsteuer\n\n<img src=x onerror="alert(1)">');
+  await note.blur();
+
+  const rendered = row.getByTestId('task-note');
+  await expect(rendered.locator('strong')).toHaveText('sammeln');
+  await expect(rendered.locator('li')).toHaveText('Lohnsteuer');
+  await expect(rendered.locator('img')).toHaveCount(0);
+  await synced(page);
+
+  await page.reload();
+  await expect(page.getByTestId('account-local-status')).toHaveText('Lokal bereit');
+  const reloaded = page.getByTestId('account-task').filter({ hasText: 'Steuer' });
+  await reloaded.getByRole('button', { name: 'Steuer bearbeiten', exact: true }).click();
+  await expect(reloaded.getByTestId('task-note').locator('strong')).toHaveText('sammeln');
+
+  // Clearing the note brings the placeholder back.
+  await reloaded.getByTestId('task-note').click();
+  await reloaded.getByLabel('Beschreibung bearbeiten', { exact: true }).fill('');
+  await reloaded.getByLabel('Beschreibung bearbeiten', { exact: true }).blur();
+  await expect(
+    reloaded.getByRole('button', { name: 'Beschreibung hinzufügen', exact: true }),
+  ).toBeVisible();
 });

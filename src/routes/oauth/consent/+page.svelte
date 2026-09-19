@@ -79,11 +79,11 @@
       <p class="leading-[1.6]">Angemeldet als <strong>{pb.authStore.record?.email}</strong></p>
       <div class="mt-6 flex gap-3">
         <button
-          class="cursor-pointer rounded-lg border border-border bg-white p-3 disabled:opacity-50"
+          class="cursor-pointer rounded-lg border border-border bg-surface p-3 disabled:opacity-50"
           disabled={busy}
           onclick={() => decide(false)}>Ablehnen</button
         ><button
-          class="cursor-pointer rounded-lg border border-border bg-accent p-3 text-white disabled:opacity-50"
+          class="cursor-pointer rounded-lg border border-border bg-accent p-3 text-on-accent disabled:opacity-50"
           disabled={busy}
           onclick={() => decide(true)}>Zugriff erlauben</button
         >
@@ -98,7 +98,7 @@
       >
         <label class="grid gap-2.5"
           >E-Mail<input
-            class="rounded-lg border border-border bg-white p-3"
+            class="rounded-lg border border-border bg-surface p-3"
             type="email"
             autocomplete="username"
             bind:value={email}
@@ -107,7 +107,7 @@
         >
         <label class="grid gap-2.5"
           >Passwort<input
-            class="rounded-lg border border-border bg-white p-3"
+            class="rounded-lg border border-border bg-surface p-3"
             type="password"
             autocomplete="current-password"
             bind:value={password}
@@ -115,7 +115,7 @@
           /></label
         >
         <button
-          class="cursor-pointer rounded-lg border border-border bg-accent p-3 text-white disabled:opacity-50"
+          class="cursor-pointer rounded-lg border border-border bg-accent p-3 text-on-accent disabled:opacity-50"
           disabled={busy}>Anmelden</button
         >
       </form>

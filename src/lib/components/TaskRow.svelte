@@ -99,7 +99,7 @@
             >{task.completed ? `${task.title} wieder öffnen` : `${task.title} erledigen`}</span
           >
           <input
-            class="relative mt-[13px] size-[19px] shrink-0 cursor-pointer appearance-none rounded-full border-[1.5px] border-[#8a9282] bg-transparent p-0 checked:border-accent checked:bg-accent checked:after:absolute checked:after:top-0.5 checked:after:left-1.25 checked:after:h-2.25 checked:after:w-1.25 checked:after:rotate-45 checked:after:border-r-[1.5px] checked:after:border-b-[1.5px] checked:after:border-white checked:after:content-[''] hover:border-accent hover:bg-selected max-mobile:m-0 max-mobile:size-[22px] max-mobile:checked:after:top-0.75 max-mobile:checked:after:left-1.5"
+            class="relative mt-[13px] size-[19px] shrink-0 cursor-pointer appearance-none rounded-full border-[1.5px] border-border-strong bg-transparent p-0 checked:border-accent checked:bg-accent checked:after:absolute checked:after:top-0.5 checked:after:left-1.25 checked:after:h-2.25 checked:after:w-1.25 checked:after:rotate-45 checked:after:border-r-[1.5px] checked:after:border-b-[1.5px] checked:after:border-on-accent checked:after:content-[''] hover:border-accent hover:bg-selected max-mobile:m-0 max-mobile:size-[22px] max-mobile:checked:after:top-0.75 max-mobile:checked:after:left-1.5"
             type="checkbox"
             aria-label={task.completed ? `${task.title} wieder öffnen` : `${task.title} erledigen`}
             checked={task.completed}

@@ -42,7 +42,7 @@
     >{account && page.url.searchParams.get('view') === 'settings'
       ? 'Einstellungen · Todo'
       : 'Todo · Deine Aufgaben'}</title
-  ><meta name="theme-color" content="#173b35" /></svelte:head
+  ></svelte:head
 >
 <main class="m-0 p-0">
   {#if account}
@@ -67,24 +67,24 @@
           void login();
         }}
       >
-        <label class="grid gap-2 text-xs text-[#657957]"
+        <label class="grid gap-2 text-xs text-muted"
           >E-Mail<input
-            class="w-full rounded-lg border border-[#d9e0d0] bg-white p-3 text-text"
+            class="w-full rounded-lg border border-border bg-surface p-3 text-text"
             type="email"
             autocomplete="username"
             bind:value={email}
             required
           /></label
-        ><label class="grid gap-2 text-xs text-[#657957]"
+        ><label class="grid gap-2 text-xs text-muted"
           >Passwort<input
-            class="w-full rounded-lg border border-[#d9e0d0] bg-white p-3 text-text"
+            class="w-full rounded-lg border border-border bg-surface p-3 text-text"
             type="password"
             autocomplete="current-password"
             bind:value={password}
             required
           /></label
         ><button
-          class="mt-1 cursor-pointer rounded-[7px] border-0 bg-accent p-[13px] text-white hover:bg-accent-hover disabled:cursor-default disabled:opacity-40"
+          class="mt-1 cursor-pointer rounded-[7px] border-0 bg-accent p-[13px] text-on-accent hover:bg-accent-hover disabled:cursor-default disabled:opacity-40"
           disabled={busy}>{busy ? 'Anmelden …' : 'Anmelden'}</button
         >
       </form>

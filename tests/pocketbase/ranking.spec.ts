@@ -310,27 +310,25 @@ test('mobile layout: create dated task in list, filter and reorder lists', async
     );
   });
   await more.click();
-  const newList = page.getByLabel('Neue Liste', { exact: true });
+  const newList = page.getByRole('button', { name: 'Neue Liste', exact: true });
   const closeDrawer = page.getByRole('button', { name: 'Menü schließen', exact: true });
   await expect(newList).toBeDisabled();
+  // Opening the drawer must not focus a text field, or the phone keyboard covers it.
   await expect(closeDrawer).toBeFocused();
-  await newList.evaluate((input) => {
-    if (!(input instanceof HTMLInputElement)) throw new Error('New-list control is not an input');
-    input.disabled = false;
-    input.focus();
-  });
-  await page.evaluate(() => new Promise(requestAnimationFrame));
-  await expect(newList).toBeFocused();
+  await expect(page.locator('#dnd-action-dragged-el')).toHaveCount(0);
+  await expect(page.getByRole('dialog').getByRole('textbox')).toHaveCount(0);
   await closeDrawer.click();
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
   await more.click();
-  await expect(newList).toBeFocused();
-  await newList.fill('Privat');
-  await newList.press('Enter');
-  await newList.fill('Arbeit');
-  await newList.press('Enter');
-  await expect(newList).toHaveValue('');
+  await expect(closeDrawer).toBeFocused();
+  const createName = page.getByLabel('Name der neuen Liste', { exact: true });
+  for (const name of ['Privat', 'Arbeit']) {
+    await newList.click();
+    await createName.fill(name);
+    await createName.press('Enter');
+    await expect(createName).toHaveCount(0);
+  }
   await synced(page);
   const drawer = page.getByRole('dialog');
   const listRow = drawer.getByRole('listitem', { name: 'Arbeit', exact: true });

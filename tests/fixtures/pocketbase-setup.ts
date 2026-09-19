@@ -36,6 +36,7 @@ export default async function setup() {
     'pointer-drag',
     'list-drop',
     'touch-drag',
+    'task-notes',
     ...['different', 'same', 'delete'].flatMap((kind) => [kind + '-ab', kind + '-ba']),
   ];
   let child: ChildProcess | undefined;

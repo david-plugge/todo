@@ -97,8 +97,9 @@
   <div
     role="button"
     tabindex="0"
-    class="relative flex min-h-9 w-full cursor-pointer items-center gap-2.25 rounded-md bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-[#edf0e7] max-mobile:min-h-11"
+    class="relative flex min-h-9 w-full cursor-pointer items-center gap-2.25 rounded-md bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-hover aria-[current=page]:font-semibold aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-1.5 aria-[current=page]:before:-left-1 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-accent aria-[current=page]:before:content-[''] max-mobile:min-h-11"
     aria-label={list.name}
+    aria-current={!settings && active ? 'page' : undefined}
     data-task-drop-list={list.id}
     class:bg-selected={!settings && active}
     class:text-accent={!settings && active}
@@ -111,7 +112,7 @@
       }
     }}
   >
-    <Hash class="shrink-0 text-[#849078]" size={17} aria-hidden="true" />
+    <Hash class="shrink-0 text-muted-soft" size={17} aria-hidden="true" />
     {#if editing}
       <input
         bind:this={input}

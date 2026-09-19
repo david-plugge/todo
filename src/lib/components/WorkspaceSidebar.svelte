@@ -44,15 +44,29 @@
     announce: (message: string) => void;
   } = $props();
   let listName = $state('');
+  let createOpen = $state(false);
+  let createError = $state('');
+  let createInput = $state<HTMLInputElement | null>(null);
   let dialogOpen = $state(false);
   let selectedList = $state<TaskList | null>(null);
   let dialogError = $state('');
   let deleteTasks = $state(false);
   const plannedCount = $derived(all.filter((task) => !!task.plannedDate && !task.completed).length);
   const completedCount = $derived(all.filter((task) => task.completed).length);
-  async function submit() {
+  function openCreateDialog() {
+    listName = '';
+    createError = '';
+    createOpen = true;
+  }
+  async function submitCreate() {
     const draft = listName;
-    if ((await create(draft.trim())) && listName === draft) listName = '';
+    if (await create(draft.trim())) {
+      if (listName === draft) listName = '';
+      createOpen = false;
+    } else {
+      createError = 'Die Liste konnte nicht angelegt werden. Bitte versuche es erneut.';
+      createInput?.focus();
+    }
   }
   function openDeleteDialog(list: TaskList) {
     selectedList = list;
@@ -73,19 +87,19 @@
   aria-label="Aufgabenansichten"
 >
   <a
-    class="mx-1 mb-[22px] flex shrink-0 items-center gap-2.25 text-[23px] font-bold tracking-[-1px] text-[#314e33] no-underline max-mobile:hidden"
+    class="mx-1 mb-[22px] flex shrink-0 items-center gap-2.25 text-[23px] font-bold tracking-[-1px] text-brand no-underline max-mobile:hidden"
     onclick={navigate}
     href={resolve('/')}
     aria-label="Todo"
   >
-    <span class="grid size-[30px] place-items-center rounded-[9px] bg-accent text-white"
+    <span class="grid size-[30px] place-items-center rounded-[9px] bg-accent text-on-accent"
       ><Check size={21} aria-hidden="true" /></span
     >
-    <span>todo<span class="text-[#9bad70]">.</span></span>
+    <span>todo<span class="text-brand-dot">.</span></span>
   </a>
-  <nav class="grid gap-0.5 max-mobile:grid-cols-2" aria-label="Ansichten">
+  <nav class="grid gap-0.5" aria-label="Ansichten">
     <button
-      class="flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-[#edf0e7] max-mobile:min-h-11"
+      class="relative flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-hover aria-[current=page]:font-semibold aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-1.5 aria-[current=page]:before:-left-1 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-accent aria-[current=page]:before:content-[''] max-mobile:min-h-11"
       class:bg-selected={!settings && view === 'today'}
       class:text-accent={!settings && view === 'today'}
       aria-current={!settings && view === 'today' ? 'page' : undefined}
@@ -100,7 +114,7 @@
       ></button
     >
     <button
-      class="flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-[#edf0e7] max-mobile:min-h-11"
+      class="relative flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-hover aria-[current=page]:font-semibold aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-1.5 aria-[current=page]:before:-left-1 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-accent aria-[current=page]:before:content-[''] max-mobile:min-h-11"
       class:bg-selected={!settings && view === 'planned'}
       class:text-accent={!settings && view === 'planned'}
       aria-current={!settings && view === 'planned' ? 'page' : undefined}
@@ -114,7 +128,7 @@
       ><span class="shrink-0 text-[11px] text-muted tabular-nums">{plannedCount}</span></button
     >
     <button
-      class="flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-[#edf0e7] max-mobile:min-h-11"
+      class="relative flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-hover aria-[current=page]:font-semibold aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-1.5 aria-[current=page]:before:-left-1 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-accent aria-[current=page]:before:content-[''] max-mobile:min-h-11"
       class:bg-selected={!settings && view === 'all'}
       class:text-accent={!settings && view === 'all'}
       aria-current={!settings && view === 'all' ? 'page' : undefined}
@@ -128,7 +142,7 @@
       ><span class="shrink-0 text-[11px] text-muted tabular-nums">{all.length}</span></button
     >
     <button
-      class="flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-[#edf0e7] max-mobile:min-h-11"
+      class="relative flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-hover aria-[current=page]:font-semibold aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-1.5 aria-[current=page]:before:-left-1 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-accent aria-[current=page]:before:content-[''] max-mobile:min-h-11"
       class:bg-selected={!settings && view === 'done'}
       class:text-accent={!settings && view === 'done'}
       aria-current={!settings && view === 'done' ? 'page' : undefined}
@@ -177,33 +191,15 @@
       {/snippet}
     </SortableRows>
   </div>
-  <form
-    class="mx-1 my-2.5 flex gap-1 max-mobile:mb-0 max-mobile:max-w-[250px]"
-    onsubmit={(event) => {
-      event.preventDefault();
-      if (ready && listName.trim()) void submit();
-    }}
+  <button
+    class="mx-1 my-2.5 flex min-h-9 cursor-pointer items-center gap-2.5 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-muted hover:bg-hover disabled:cursor-default disabled:opacity-40 max-mobile:mb-0 max-mobile:min-h-11"
+    type="button"
+    disabled={!ready}
+    aria-label="Neue Liste"
+    onclick={openCreateDialog}
   >
-    <input
-      class="w-full min-w-0 rounded-md border border-transparent bg-transparent p-2 text-base text-text focus:border-border focus:shadow-none"
-      disabled={!ready}
-      aria-label="Neue Liste"
-      placeholder="Neue Liste …"
-      enterkeyhint="done"
-      bind:value={listName}
-      maxlength="2000"
-      required
-    />
-    <button
-      class="grid size-11 shrink-0 place-items-center rounded-md border-0 bg-transparent text-accent hover:bg-selected disabled:cursor-default disabled:opacity-40"
-      type="submit"
-      aria-label="Liste hinzufügen"
-      title="Liste hinzufügen"
-      disabled={!ready || !listName.trim()}
-    >
-      <Plus size={18} aria-hidden="true" />
-    </button>
-  </form>
+    <Plus class="shrink-0" size={18} aria-hidden="true" />Neue Liste
+  </button>
   <div
     class="mt-auto flex items-center gap-1 pt-6 max-mobile:mt-3 max-mobile:border-t max-mobile:border-border max-mobile:pt-4"
   >
@@ -226,11 +222,53 @@
       >
     </a>
   </div>
+  <Dialog.Root bind:open={createOpen}>
+    <Dialog.Portal>
+      <Dialog.Overlay class="fixed inset-0 z-130 bg-overlay" />
+      <Dialog.Content
+        class="fixed top-1/2 left-1/2 z-131 w-[min(400px,calc(100vw-32px))] -translate-1/2 rounded-[10px] border border-border bg-surface p-[22px] shadow-modal"
+      >
+        <Dialog.Title class="m-0 text-[21px] leading-[1.2] font-bold text-accent"
+          >Neue Liste</Dialog.Title
+        >
+        <form
+          onsubmit={(event) => {
+            event.preventDefault();
+            if (ready && listName.trim()) void submitCreate();
+          }}
+        >
+          <input
+            class="mt-4 w-full min-w-0 rounded-md border border-border bg-surface p-2.5 text-base text-text"
+            disabled={!ready || busy}
+            aria-label="Name der neuen Liste"
+            placeholder="Wie soll die Liste heißen?"
+            enterkeyhint="done"
+            bind:value={listName}
+            bind:this={createInput}
+            maxlength="2000"
+            required
+          />
+          <div class="mt-5 flex justify-end gap-2">
+            <Dialog.Close
+              class="min-h-9 cursor-pointer rounded-md border border-border bg-surface px-3 py-2 text-xs text-accent disabled:cursor-default disabled:opacity-40"
+              >Abbrechen</Dialog.Close
+            >
+            <button
+              class="min-h-9 cursor-pointer rounded-md border border-accent bg-accent px-3 py-2 text-xs text-on-accent disabled:cursor-default disabled:opacity-40"
+              type="submit"
+              disabled={!ready || busy || !listName.trim()}>Liste hinzufügen</button
+            >
+          </div>
+        </form>
+        {#if createError}<p class="mt-3 mb-0 text-danger" role="alert">{createError}</p>{/if}
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
   <Dialog.Root bind:open={dialogOpen}>
     <Dialog.Portal>
-      <Dialog.Overlay class="fixed inset-0 z-130 bg-[#19221b66]" />
+      <Dialog.Overlay class="fixed inset-0 z-130 bg-overlay" />
       <Dialog.Content
-        class="fixed top-1/2 left-1/2 z-131 w-[min(400px,calc(100vw-32px))] -translate-1/2 rounded-[10px] border border-border bg-canvas p-[22px] shadow-[0_16px_48px_#19221b33]"
+        class="fixed top-1/2 left-1/2 z-131 w-[min(400px,calc(100vw-32px))] -translate-1/2 rounded-[10px] border border-border bg-surface p-[22px] shadow-modal"
       >
         <Dialog.Title class="m-0 text-[21px] leading-[1.2] font-bold text-accent"
           >Liste löschen</Dialog.Title
@@ -260,7 +298,7 @@
             >Abbrechen</Dialog.Close
           >
           <button
-            class="min-h-9 cursor-pointer rounded-md border border-danger bg-danger px-3 py-2 text-xs text-white disabled:cursor-default disabled:opacity-40"
+            class="min-h-9 cursor-pointer rounded-md border border-danger bg-danger px-3 py-2 text-xs text-on-danger disabled:cursor-default disabled:opacity-40"
             disabled={busy}
             onclick={() => void submitDialog()}>Liste löschen</button
           >

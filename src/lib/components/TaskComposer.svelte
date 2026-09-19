@@ -116,7 +116,7 @@
     >
     <div class="flex flex-none gap-1.5 max-mobile:gap-1">
       <button
-        class="min-h-9 cursor-pointer rounded-md border border-border bg-surface px-2.5 py-1.75 text-xs whitespace-nowrap text-accent hover:bg-[#edf0e7] max-mobile:min-h-10 max-mobile:p-2"
+        class="min-h-9 cursor-pointer rounded-md border border-border bg-surface px-2.5 py-1.75 text-xs whitespace-nowrap text-accent hover:bg-hover max-mobile:min-h-10 max-mobile:p-2"
         type="button"
         onclick={() => {
           title = '';
@@ -127,7 +127,7 @@
         }}>Abbrechen</button
       >
       <button
-        class="min-h-9 cursor-pointer rounded-md border border-accent bg-accent px-2.5 py-1.75 text-xs whitespace-nowrap text-white hover:bg-accent-hover disabled:cursor-default disabled:opacity-40 max-mobile:min-h-10 max-mobile:p-2"
+        class="min-h-9 cursor-pointer rounded-md border border-accent bg-accent px-2.5 py-1.75 text-xs whitespace-nowrap text-on-accent hover:bg-accent-hover disabled:cursor-default disabled:opacity-40 max-mobile:min-h-10 max-mobile:p-2"
         aria-label="Task erstellen"
         disabled={!ready || busy || pending || !title.trim()}
         >{pending ? 'Wird hinzugefügt …' : 'Hinzufügen'}</button

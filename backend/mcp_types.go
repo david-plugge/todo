@@ -14,6 +14,7 @@ import (
 
 type EntityID string
 type TaskText string
+type TaskNote string
 type PageLimit int
 type Revision int64
 
@@ -36,6 +37,7 @@ type GetTaskInput struct {
 type CreateTaskInput struct {
 	MutationID     EntityID  `json:"mutationId"               jsonschema:"New UUID per intended write; reuse identical arguments when retrying."`
 	Title          TaskText  `json:"title"`
+	Description    *TaskNote `json:"description,omitempty"    jsonschema:"Free-form note, or null."`
 	Completed      bool      `json:"completed,omitempty"`
 	DueDate        *string   `json:"dueDate,omitempty"        jsonschema:"Calendar date YYYY-MM-DD, or null."`
 	PlannedDate    *string   `json:"plannedDate,omitempty"    jsonschema:"Calendar date YYYY-MM-DD, or null."`
@@ -53,6 +55,7 @@ type TaskMutationInput struct {
 
 type TaskChanges struct {
 	Title          TaskText  `json:"title,omitempty"`
+	Description    *TaskNote `json:"description,omitempty"`
 	Completed      bool      `json:"completed,omitempty"`
 	DueDate        *string   `json:"dueDate,omitempty"`
 	PlannedDate    *string   `json:"plannedDate,omitempty"`
@@ -67,6 +70,13 @@ type UpdateTaskInput struct {
 	Changes TaskChanges `json:"changes"`
 }
 
+type DeleteListInput struct {
+	MutationID       EntityID `json:"mutationId"            jsonschema:"New UUID per intended write; reuse identical arguments when retrying."`
+	ID               EntityID `json:"id"`
+	ExpectedRevision Revision `json:"expectedRevision"      jsonschema:"remoteRevision from the latest read; stale revisions are rejected."`
+	DeleteTasks      bool     `json:"deleteTasks,omitempty" jsonschema:"Tombstone the list's active tasks as well. Default false keeps them and clears their list."`
+}
+
 type CreateListInput struct {
 	MutationID EntityID `json:"mutationId"`
 	Name       TaskText `json:"name"`
@@ -78,6 +88,7 @@ func inputSchema[T any]() *jsonschema.Schema {
 	schema, err := jsonschema.For[T](&jsonschema.ForOptions{TypeSchemas: map[reflect.Type]*jsonschema.Schema{
 		reflect.TypeFor[EntityID]():  {Type: "string", Pattern: uuidPattern.String()},
 		reflect.TypeFor[TaskText]():  {Type: "string", MinLength: pointer(1), MaxLength: pointer(2000), Pattern: `\S`},
+		reflect.TypeFor[TaskNote]():  {Type: "string", MaxLength: pointer(10000)},
 		reflect.TypeFor[PageLimit](): {Type: "integer", Minimum: pointer(1.0), Maximum: pointer(100.0)},
 		reflect.TypeFor[Revision]():  {Type: "integer", Minimum: pointer(1.0), Maximum: pointer(9007199254740991.0)},
 	}})

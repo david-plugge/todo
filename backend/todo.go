@@ -98,6 +98,7 @@ func fields(kind string) []string {
 	}
 	return []string{
 		"title",
+		"description",
 		"completed",
 		"deletedAt",
 		"rank",
@@ -123,7 +124,16 @@ func stamp(p Object, field string) Object {
 
 func optional(field string) bool {
 	return slices.Contains(
-		[]string{"rank", "dueDate", "plannedDate", "listId", "recurrenceRule", "recurrenceDate", "seriesId"},
+		[]string{
+			"rank",
+			"description",
+			"dueDate",
+			"plannedDate",
+			"listId",
+			"recurrenceRule",
+			"recurrenceDate",
+			"seriesId",
+		},
 		field,
 	)
 }
@@ -294,6 +304,12 @@ func validateMutation(m Object, owner string) error {
 	}
 	if strings.TrimSpace(str(name)) == "" || len([]rune(str(name))) > 2000 {
 		return bad("Invalid title or name")
+	}
+	if note, exists := p["description"]; exists && note != nil {
+		text, ok := note.(string)
+		if !ok || len([]rune(text)) > 10000 {
+			return bad("Invalid description")
+		}
 	}
 	if _, ok := p["fieldVersions"]; ok && !validFields(p, kind) {
 		return bad("Invalid field versions")

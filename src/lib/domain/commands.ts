@@ -5,6 +5,7 @@ export type TaskChanges = Partial<
   Pick<
     Task,
     | 'title'
+    | 'description'
     | 'completed'
     | 'deletedAt'
     | 'dueDate'

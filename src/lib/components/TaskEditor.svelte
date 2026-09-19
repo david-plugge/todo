@@ -1,8 +1,11 @@
 <script lang="ts">
   import { Hash, Repeat2 } from '@lucide/svelte';
   import { Collapsible, Popover } from 'bits-ui';
+  import { Drawer } from 'vaul-svelte';
+  import { MediaQuery } from 'svelte/reactivity';
   import type { TaskChanges } from '$lib/domain/commands';
   import type { Task, TaskList } from '$lib/domain/models';
+  import { isBlankNote, renderNote } from '$lib/domain/markdown';
   import RecurrenceEditor from './RecurrenceEditor.svelte';
   import TaskDatePicker from './TaskDatePicker.svelte';
   let {
@@ -25,6 +28,29 @@
 
   let recurrenceOpen = $state(false);
   let wasExpanded = $state<boolean | undefined>(undefined);
+  let editingNote = $state(false);
+  let noteDraft = $state('');
+  const note = $derived(task.description ?? '');
+  const renderedNote = $derived(isBlankNote(note) ? '' : renderNote(note));
+
+  // A stable action focuses once on mount; an inline attachment would re-run on
+  // every keystroke and pull focus back after blur.
+  function focusNote(area: HTMLTextAreaElement) {
+    area.focus({ preventScroll: true });
+  }
+
+  function startNote(area?: HTMLTextAreaElement) {
+    noteDraft = note;
+    editingNote = true;
+    area?.focus();
+  }
+
+  async function commitNote() {
+    const next = noteDraft.trim();
+    editingNote = false;
+    if (next === note.trim()) return;
+    await save({ description: next || null });
+  }
 
   $effect(() => {
     if (wasExpanded === true && !expanded) recurrenceOpen = false;
@@ -50,6 +76,10 @@
       : {};
     void save({ dueDate, ...recurrenceChanges });
   }
+  const wide = new MediaQuery('(min-width: 36.25rem)');
+  const recurrenceTriggerClass = $derived(
+    `relative inline-flex min-h-6 cursor-pointer items-center justify-center gap-1.25 rounded-md border-0 bg-transparent px-1 py-0.5 text-[11px] leading-5 whitespace-nowrap text-muted hover:bg-selected disabled:cursor-default disabled:opacity-40 max-mobile:after:absolute max-mobile:after:inset-x-0 max-mobile:after:-inset-y-2.5 max-mobile:after:content-[''] ${task.recurrenceRule ? 'text-accent' : ''}`,
+  );
 </script>
 
 <div
@@ -88,41 +118,85 @@
     />
   {/if}
   {#if expanded || task.recurrenceRule}
-    <Popover.Root bind:open={recurrenceOpen}>
-      <Popover.Trigger
-        type="button"
-        class={`relative inline-flex min-h-6 cursor-pointer items-center justify-center gap-1.25 rounded-md border-0 bg-transparent px-1 py-0.5 text-[11px] leading-5 whitespace-nowrap text-muted hover:bg-selected disabled:cursor-default disabled:opacity-40 max-mobile:after:absolute max-mobile:after:inset-x-0 max-mobile:after:-inset-y-2.5 max-mobile:after:content-[''] ${task.recurrenceRule ? 'text-accent' : ''}`}
-        aria-label={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
-        title={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
-        disabled={busy}
-      >
-        <Repeat2 size={15} aria-hidden="true" />
-        <span>{task.recurrenceRule ? 'Wiederholt sich' : 'Wiederholen'}</span>
-      </Popover.Trigger>
-      <Popover.Portal>
-        <Popover.Content
-          class="z-10000 max-h-(--bits-popover-content-available-height) w-[min(380px,calc(100vw-24px))] overflow-y-auto rounded-xl border border-border bg-surface p-3 text-[13px] text-text shadow-[0_12px_36px_#28332224,0_2px_6px_#2833220c]"
-          data-testid="recurrence-popover"
-          aria-label="Wiederholung"
-          align="start"
-          sideOffset={8}
-          collisionPadding={12}
-          interactOutsideBehavior={busy ? 'ignore' : 'close'}
-          escapeKeydownBehavior={busy ? 'ignore' : 'close'}
+    {#snippet recurrenceTrigger()}
+      <Repeat2 size={15} aria-hidden="true" />
+      <span>{task.recurrenceRule ? 'Wiederholt sich' : 'Wiederholen'}</span>
+    {/snippet}
+    {#if wide.current}
+      <Popover.Root bind:open={recurrenceOpen}>
+        <Popover.Trigger
+          type="button"
+          class={recurrenceTriggerClass}
+          aria-label={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
+          title={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
+          disabled={busy}
         >
-          <RecurrenceEditor
-            recurrenceRule={task.recurrenceRule}
-            recurrenceDate={task.recurrenceDate}
-            startDate={task.dueDate ?? task.plannedDate}
-            disabled={busy}
-            {save}
-            close={() => {
-              recurrenceOpen = false;
-            }}
-          />
-        </Popover.Content>
-      </Popover.Portal>
-    </Popover.Root>
+          {@render recurrenceTrigger()}
+        </Popover.Trigger>
+        <Popover.Portal>
+          <Popover.Content
+            class="z-10000 max-h-(--bits-popover-content-available-height) w-[min(380px,calc(100vw-24px))] overflow-y-auto rounded-xl border border-border bg-surface p-3 text-[13px] text-text shadow-popover"
+            data-testid="recurrence-popover"
+            aria-label="Wiederholung"
+            align="start"
+            sideOffset={8}
+            collisionPadding={12}
+            interactOutsideBehavior={busy ? 'ignore' : 'close'}
+            escapeKeydownBehavior={busy ? 'ignore' : 'close'}
+          >
+            <RecurrenceEditor
+              recurrenceRule={task.recurrenceRule}
+              recurrenceDate={task.recurrenceDate}
+              startDate={task.dueDate ?? task.plannedDate}
+              disabled={busy}
+              {save}
+              close={() => {
+                recurrenceOpen = false;
+              }}
+            />
+          </Popover.Content>
+        </Popover.Portal>
+      </Popover.Root>
+    {:else}
+      <!-- A save in flight must not be interrupted by a swipe or a tap outside. -->
+      <Drawer.Root bind:open={recurrenceOpen} dismissible={!busy}>
+        <Drawer.Trigger
+          type="button"
+          class={recurrenceTriggerClass}
+          aria-label={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
+          title={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
+          disabled={busy}
+        >
+          {@render recurrenceTrigger()}
+        </Drawer.Trigger>
+        <Drawer.Portal>
+          <Drawer.Overlay class="fixed inset-0 z-10000 bg-overlay" />
+          <Drawer.Content
+            class="fixed inset-x-0 bottom-0 z-10001 flex max-h-[90dvh] flex-col rounded-t-[20px] bg-surface text-[13px] text-text shadow-drawer outline-none"
+            data-testid="recurrence-popover"
+            aria-label="Wiederholung"
+          >
+            <Drawer.Handle
+              class="mx-auto mt-2.5 mb-1 h-1 w-10 shrink-0 rounded-full bg-border-strong"
+            />
+            <div
+              class="min-h-0 overflow-y-auto px-3 pt-1 pb-[calc(12px+env(safe-area-inset-bottom))]"
+            >
+              <RecurrenceEditor
+                recurrenceRule={task.recurrenceRule}
+                recurrenceDate={task.recurrenceDate}
+                startDate={task.dueDate ?? task.plannedDate}
+                disabled={busy}
+                {save}
+                close={() => {
+                  recurrenceOpen = false;
+                }}
+              />
+            </div>
+          </Drawer.Content>
+        </Drawer.Portal>
+      </Drawer.Root>
+    {/if}
   {/if}
   {#if !expanded && task.listId && showList}
     <span
@@ -134,6 +208,50 @@
   {/if}
 </div>
 <Collapsible.Content>
+  <div class="mt-1.5" data-testid="task-note">
+    {#if editingNote}
+      <textarea
+        class="min-h-20 w-full resize-y rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] leading-[1.6] text-text"
+        aria-label="Beschreibung bearbeiten"
+        placeholder="Notiz, Markdown erlaubt …"
+        maxlength="10000"
+        disabled={busy}
+        bind:value={noteDraft}
+        onblur={() => void commitNote()}
+        onkeydown={(event) => {
+          if (event.key === 'Escape') {
+            event.stopPropagation();
+            noteDraft = note;
+            editingNote = false;
+          }
+        }}
+        use:focusNote></textarea>
+    {:else if renderedNote}
+      <div
+        class="cursor-text text-[13px] leading-[1.6] text-muted [&_a]:text-accent [&_a]:underline [&_code]:rounded [&_code]:bg-selected [&_code]:px-1 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:text-sm [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_ol_li]:list-decimal [&_p]:my-0.5 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-selected [&_pre]:p-2"
+        role="button"
+        tabindex="0"
+        aria-label="Beschreibung bearbeiten"
+        onclick={() => startNote()}
+        onkeydown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            startNote();
+          }
+        }}
+      >
+        <!-- eslint-disable-next-line svelte/no-at-html-tags -- sanitized in renderNote -->
+        {@html renderedNote}
+      </div>
+    {:else}
+      <button
+        class="-ml-1 cursor-pointer rounded-md border-0 bg-transparent px-1 py-0.5 text-[11px] text-muted hover:bg-selected"
+        type="button"
+        disabled={busy}
+        onclick={() => startNote()}>Beschreibung hinzufügen</button
+      >
+    {/if}
+  </div>
   <div
     class={`relative mt-1 flex flex-nowrap items-center gap-2 border-t-0 pt-2 before:absolute before:top-0 before:-right-2 before:border-t before:border-border before:content-[''] max-mobile:gap-1 ${expanded ? 'before:left-[-41px] max-mobile:before:-left-11' : 'before:left-[-33px] max-mobile:before:-left-9'}`}
     data-testid="task-editor-footer"

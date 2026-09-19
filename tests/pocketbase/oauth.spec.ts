@@ -91,7 +91,7 @@ test('official SDK discovers OAuth, registers, opens browser consent and connect
   await client.connect(
     new StreamableHTTPClientTransport(new URL(resource), { authProvider: provider }),
   );
-  expect((await client.listTools()).tools).toHaveLength(8);
+  expect((await client.listTools()).tools).toHaveLength(9);
   await client.close();
   await first.close();
 });

@@ -1,20 +1,105 @@
 @import 'tailwindcss';
 
+/* The theme script puts .dark on <html>; it resolves "system" itself so that a
+   manual choice always wins over prefers-color-scheme. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
-  --color-canvas: #faf9f6;
-  --color-surface: #fffefa;
-  --color-text: #333832;
-  --color-muted: #63705d;
-  --color-accent: #365c3d;
-  --color-accent-hover: #25462b;
-  --color-selected: #e6eddf;
-  --color-border: #e4e2da;
-  --color-focus: #70895d;
-  --color-danger: #9b4935;
-  --color-danger-soft: #fbece7;
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-muted-soft: var(--muted-soft);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-soft: var(--accent-soft);
+  --color-brand: var(--brand);
+  --color-brand-dot: var(--brand-dot);
+  --color-selected: var(--selected);
+  --color-hover: var(--hover);
+  --color-hover-soft: var(--hover-soft);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-focus: var(--focus);
+  --color-overlay: var(--overlay);
+  --color-drop: var(--drop);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-on-accent: var(--on-accent);
+  --color-on-danger: var(--on-danger);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --shadow-menu: var(--shadow-menu-value);
+  --shadow-popover: var(--shadow-popover-value);
+  --shadow-modal: var(--shadow-modal-value);
+  --shadow-drawer: var(--shadow-drawer-value);
   --radius-card: 14px;
   --breakpoint-sidebar: 50rem;
   --breakpoint-mobile: 36.25rem;
+}
+
+:root {
+  color-scheme: light;
+  --canvas: #faf9f6;
+  --surface: #fffefa;
+  --text: #333832;
+  --muted: #63705d;
+  --muted-soft: #849078;
+  --accent: #365c3d;
+  --accent-hover: #25462b;
+  --accent-soft: #4f704a;
+  --on-accent: #ffffff;
+  --on-danger: #ffffff;
+  --brand: #314e33;
+  --brand-dot: #9bad70;
+  --selected: #e6eddf;
+  --hover: #edf0e7;
+  --hover-soft: #f5f5ee;
+  --border: #e4e2da;
+  --border-strong: #8a9282;
+  --focus: #70895d;
+  --overlay: #19221b66;
+  --drop: #dce9d255;
+  --success: #5f7f55;
+  --warning: #805d33;
+  --danger: #9b4935;
+  --danger-soft: #fbece7;
+  --shadow-menu-value: 0 8px 24px #28332224;
+  --shadow-popover-value: 0 12px 36px #28332224, 0 2px 6px #2833220c;
+  --shadow-modal-value: 0 16px 48px #19221b33;
+  --shadow-drawer-value: 0 -12px 40px #19221b22;
+}
+
+.dark {
+  color-scheme: dark;
+  --canvas: #161a16;
+  --surface: #1d221d;
+  --text: #e3e6e0;
+  --muted: #9aa695;
+  --muted-soft: #7d8878;
+  --accent: #8fbe92;
+  --accent-hover: #a8d1aa;
+  --accent-soft: #9cc797;
+  --on-accent: #14200f;
+  --on-danger: #2b120c;
+  --brand: #bcd6ba;
+  --brand-dot: #9bad70;
+  --selected: #2b352b;
+  --hover: #262d26;
+  --hover-soft: #212722;
+  --border: #333a32;
+  --border-strong: #6d7869;
+  --focus: #8aa87a;
+  --overlay: #0a0d0acc;
+  --drop: #3a4a3866;
+  --success: #86ae79;
+  --warning: #cfa163;
+  --danger: #e0876f;
+  --danger-soft: #3a2420;
+  --shadow-menu-value: 0 8px 24px #00000066;
+  --shadow-popover-value: 0 12px 36px #0000007a, 0 2px 6px #00000047;
+  --shadow-modal-value: 0 16px 48px #00000080;
+  --shadow-drawer-value: 0 -12px 40px #00000073;
 }
 
 @layer base {
@@ -36,9 +121,7 @@
 /* svelte-dnd-action appends this clone to <body>, outside the component tree. */
 #dnd-action-dragged-el {
   @apply cursor-grabbing overflow-hidden rounded-lg bg-canvas outline-1 outline-border;
-  box-shadow:
-    0 12px 32px #28332224,
-    0 1px 4px #28332218;
+  box-shadow: var(--shadow-popover-value);
 }
 
 #dnd-action-dragged-el .compact-drag-title {
@@ -59,7 +142,7 @@
 
 #dnd-action-dragged-el.compact-drag .compact-drag-title {
   @apply absolute top-[-42px] left-0 block w-full overflow-hidden text-ellipsis whitespace-nowrap rounded-[7px] border border-focus bg-canvas px-3 py-2 text-xs leading-4 text-accent;
-  box-shadow: 0 5px 16px #28332220;
+  box-shadow: var(--shadow-menu-value);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -389,7 +389,7 @@
     {#if !readOnlyRule}
       <button
         type="button"
-        class="min-h-9 cursor-pointer rounded-md border border-accent bg-accent px-3 py-1.75 text-xs text-white hover:bg-accent-hover disabled:cursor-default disabled:opacity-40"
+        class="min-h-9 cursor-pointer rounded-md border border-accent bg-accent px-3 py-1.75 text-xs text-on-accent hover:bg-accent-hover disabled:cursor-default disabled:opacity-40"
         disabled={!anchor || !weeklySelectionValid || disabled || pending}
         onclick={() => void apply()}>{pending ? 'Speichert …' : 'Übernehmen'}</button
       >

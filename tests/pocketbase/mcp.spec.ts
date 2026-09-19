@@ -58,6 +58,7 @@ test('official MCP SDK: discovery, owner isolation, CRUD, receipts and calendar/
         'delete_task',
         'list_lists',
         'create_list',
+        'delete_list',
       ].sort(),
     );
     await client.ping();

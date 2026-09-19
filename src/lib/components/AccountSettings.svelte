@@ -1,9 +1,19 @@
 <script lang="ts">
   import type { Snippet } from 'svelte';
-  import { ArrowLeft, UserRound } from '@lucide/svelte';
+  import { ArrowLeft, Monitor, Moon, Sun, UserRound } from '@lucide/svelte';
+  import { ToggleGroup } from 'bits-ui';
   import { resolve } from '$app/paths';
   import type { Account } from '$lib/pocketbase/session';
+  import type { ThemePreference } from '$lib/ui/theme';
+  import { createTheme } from '$lib/ui/theme.svelte';
   import ConnectedAgents from './ConnectedAgents.svelte';
+
+  const theme = createTheme();
+  const appearances: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
+    { value: 'light', label: 'Hell', icon: Sun },
+    { value: 'dark', label: 'Dunkel', icon: Moon },
+    { value: 'system', label: 'System', icon: Monitor },
+  ];
   let {
     account,
     logout,
@@ -43,10 +53,34 @@
       Deine Aufgaben bleiben auf diesem Gerät verfügbar, auch wenn du offline bist.
     </p>
     <button
-      class="min-h-9 cursor-pointer rounded-md border border-border bg-surface px-3 py-2 text-xs text-accent transition-colors hover:bg-[#edf0e7]"
+      class="min-h-9 cursor-pointer rounded-md border border-border bg-surface px-3 py-2 text-xs text-accent transition-colors hover:bg-hover"
       onclick={logout}
       aria-label="Abmelden">Auf diesem Gerät abmelden</button
     >
+  </section>
+  <section class="border-t border-border py-6" aria-labelledby="appearance-heading">
+    <h2 class="m-0 flex items-center gap-2.25 text-[15px] font-semibold" id="appearance-heading">
+      <Sun size={18} aria-hidden="true" /> Darstellung
+    </h2>
+    <p class="mt-3 mb-4 text-[13px] leading-[1.7] text-muted">
+      Gilt nur auf diesem Gerät. „System“ folgt der Einstellung deines Betriebssystems.
+    </p>
+    <ToggleGroup.Root
+      type="single"
+      value={theme.preference}
+      onValueChange={(value) => value && theme.set(value as ThemePreference)}
+      class="flex flex-wrap gap-1.25"
+      aria-label="Farbschema"
+    >
+      {#each appearances as appearance (appearance.value)}
+        <ToggleGroup.Item
+          value={appearance.value}
+          data-testid={`theme-${appearance.value}`}
+          class="flex min-h-9 cursor-pointer items-center gap-2 rounded-md border border-border bg-surface px-3 py-1.75 text-xs text-muted transition-colors hover:bg-hover data-[state=on]:border-accent data-[state=on]:bg-selected data-[state=on]:text-accent max-mobile:min-h-11 max-mobile:flex-1"
+          ><appearance.icon size={15} aria-hidden="true" />{appearance.label}</ToggleGroup.Item
+        >
+      {/each}
+    </ToggleGroup.Root>
   </section>
   {@render children()}
   {#if active}<ConnectedAgents />{/if}

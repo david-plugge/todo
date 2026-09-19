@@ -1,6 +1,6 @@
 # MCP in PocketBase
 
-MCP läuft im nativen Go-PocketBase-Prozess unter `http://127.0.0.1:8090/api/todo/mcp`. Transport und Protokoll übernimmt das offizielle `modelcontextprotocol/go-sdk`; die acht Tools werden mit typisiertem `mcp.AddTool` registriert. `google/jsonschema-go` leitet die Eingabeschemas aus Structs ab. Wiederverwendbare Feldtypen ergänzen UUID-, Längen- und Zahlenlimits. Das SDK validiert die Eingaben; eine eigene JSON-Schema-Implementierung gibt es nicht.
+MCP läuft im nativen Go-PocketBase-Prozess unter `http://127.0.0.1:8090/api/todo/mcp`. Transport und Protokoll übernimmt das offizielle `modelcontextprotocol/go-sdk`; die neun Tools werden mit typisiertem `mcp.AddTool` registriert. `google/jsonschema-go` leitet die Eingabeschemas aus Structs ab. Wiederverwendbare Feldtypen ergänzen UUID-, Längen- und Zahlenlimits. Das SDK validiert die Eingaben; eine eigene JSON-Schema-Implementierung gibt es nicht.
 
 ## OAuth-Anschluss
 
@@ -21,16 +21,21 @@ Discovery: `/.well-known/oauth-protected-resource/api/todo/mcp` und `/.well-know
 
 | Tool            | Eingaben                                                                                           |
 | --------------- | -------------------------------------------------------------------------------------------------- |
-| `list_tasks`    | Optional `limit` (1–100), `cursor`, `completed`, `listId`, `query`                                 |
+| `list_tasks`    | Optional `limit` (1–100), `cursor`, `completed`, `listId`, `query` (Titel und Beschreibung)        |
 | `get_task`      | `id`; liefert auch Tombstones                                                                      |
-| `create_task`   | `mutationId`, `title`; optional `completed`, `dueDate`, `plannedDate`, `listId`                    |
+| `create_task`   | `mutationId`, `title`; optional `description`, `completed`, `dueDate`, `plannedDate`, `listId`     |
 | `update_task`   | `mutationId`, `id`, `expectedRevision`, `changes` mit mindestens einem editierbaren Feld           |
 | `complete_task` | `mutationId`, `id`, `expectedRevision`                                                             |
 | `delete_task`   | `mutationId`, `id`, `expectedRevision`; erzeugt einen Tombstone, keine Wiederherstellung verfügbar |
 | `list_lists`    | Optional `limit`, `cursor`                                                                         |
 | `create_list`   | `mutationId`, `name`                                                                               |
+| `delete_list`   | `mutationId`, `id`, `expectedRevision`; optional `deleteTasks`; erzeugt einen Tombstone            |
+
+Das Löschen einer Liste folgt der App: Ihre aktiven Tasks bleiben erhalten und verlieren nur die Listenzuordnung, sofern `deleteTasks` nicht gesetzt ist. Liste und betroffene Tasks werden in einer Transaktion geschrieben; die Task-Mutations-IDs leiten sich aus der übergebenen `mutationId` ab, sodass ein Wiederholungsversuch keine zweite Revision erzeugt.
 
 Listenabfragen geben `{ items, nextCursor }` in aufsteigender Entity-ID-Reihenfolge zurück, nicht in UI-Rangfolge. Nur aktive Einträge werden aufgelistet. Paging ist kein unveränderlicher Snapshot bei parallelen Änderungen. Tasks enthalten ihren `rank` für eine gesonderte UI-Sortierung. Der Server sieht ausschließlich bereits synchronisierte Daten.
+
+`description` ist eine freie Notiz mit höchstens 10.000 Zeichen; `null` entfernt sie. Die App stellt sie als Markdown dar und entfernt dabei alles außer Text, Hervorhebungen, Listen, Code und Links auf `http`, `https`, `mailto` sowie Seitenanker.
 
 `mutationId` ist eine neue UUID pro beabsichtigtem Schreibvorgang. Bei einer unklaren Antwort exakt dieselbe ID und dieselben Argumente wiederholen. Der gespeicherte ursprüngliche Erfolg wird zurückgegeben, ohne eine weitere Revision zu erzeugen. Andere Argumente mit derselben ID werden abgelehnt.
 

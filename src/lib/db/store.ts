@@ -173,6 +173,7 @@ export function createStore(
     const successor: Task = {
       id,
       title: source.title,
+      description: source.description ?? null,
       completed: false,
       dueDate: shiftCalendarDate(source.dueDate, source.recurrenceDate!, nextDate) ?? null,
       plannedDate: shiftCalendarDate(source.plannedDate, source.recurrenceDate!, nextDate) ?? null,
@@ -242,6 +243,7 @@ export function createStore(
         const task: Task = {
           id,
           title: title.trim(),
+          description: null,
           completed: false,
           dueDate: null,
           plannedDate: null,

@@ -92,6 +92,7 @@ func createRecurringSuccessor(app core.App, owner string, completed Object, devi
 		"ownerId":        owner,
 		"version":        float64(1),
 		"title":          completed["title"],
+		"description":    completed["description"],
 		"completed":      false,
 		"rank":           rank,
 		"dueDate":        shiftedDate(completed["dueDate"], days),
@@ -129,6 +130,77 @@ func createRecurringSuccessor(app core.App, owner string, completed Object, devi
 	return err
 }
 
+// stampChanges applies changes to p and bumps the field version of every field
+// the mutation actually touched. It returns the entity version for the mutation.
+func stampChanges(p, changes Object, kind string, create bool, device string) float64 {
+	stamps := Object{}
+	counter := num(p["version"])
+	for _, f := range fields(kind) {
+		s := stamp(p, f)
+		stamps[f] = s
+		counter = math.Max(counter, num(s["counter"]))
+	}
+	counter++
+	for k, v := range changes {
+		p[k] = v
+	}
+	for _, f := range fields(kind) {
+		_, changed := changes[f]
+		if (create && p[f] != nil) || (!create && changed) {
+			stamps[f] = Object{"counter": counter, "deviceId": device}
+		}
+	}
+	p["version"] = counter
+	p["fieldVersions"] = stamps
+	return counter
+}
+
+// detachListTasks mirrors the app: deleting a list either tombstones its active
+// tasks or keeps them without a list. Every task becomes its own mutation, with
+// a mutation ID derived from the caller's, so a retry stays idempotent.
+func detachListTasks(tx core.App, owner string, a, list Object, device string, now float64) error {
+	base, err := uuid.Parse(str(a["mutationId"]))
+	if err != nil {
+		return err
+	}
+	remove, _ := a["deleteTasks"].(bool)
+	rows, err := tx.FindRecordsByFilter(
+		"tasks",
+		"owner={:owner} && data.deletedAt = null && data.listId = {:list}",
+		"entityId",
+		0,
+		0,
+		dbx.Params{"owner": owner, "list": list["id"]},
+	)
+	if err != nil {
+		return err
+	}
+	for _, row := range rows {
+		task := payload(row)
+		changes := Object{"listId": nil}
+		operation := "update"
+		if remove {
+			changes = Object{"deletedAt": now}
+			operation = "delete"
+		}
+		version := stampChanges(task, changes, "task", false, device)
+		task["updatedAt"] = now
+		if _, err := applyMutation(tx, owner, Object{
+			"id":            uuid.NewSHA1(base, []byte("list-delete:"+str(task["id"]))).String(),
+			"entityId":      task["id"],
+			"entityType":    "task",
+			"entityVersion": version,
+			"operation":     operation,
+			"deviceId":      device,
+			"baseRevision":  num(task["remoteRevision"]),
+			"payload":       task,
+		}, ""); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func callTool(app core.App, owner, name string, a Object) (Object, error) {
 	if name == "get_task" {
 		p, err := entity(app, owner, "task", str(a["id"]))
@@ -141,7 +213,7 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 		}
 		clauses := []string{"owner={:owner}", "data.deletedAt = null"}
 		params := dbx.Params{"owner": owner}
-		for key, clause := range map[string]string{"cursor": "entityId > {:cursor}", "completed": "data.completed = {:completed}", "listId": "data.listId = {:listId}", "query": "data.title ~ {:query}"} {
+		for key, clause := range map[string]string{"cursor": "entityId > {:cursor}", "completed": "data.completed = {:completed}", "listId": "data.listId = {:listId}", "query": "(data.title ~ {:query} || data.description ~ {:query})"} {
 			if v, ok := a[key]; ok {
 				if key == "listId" && v == nil {
 					clause = "data.listId = null"
@@ -206,8 +278,12 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 		}
 		create := name == "create_task" || name == "create_list"
 		kind := "task"
-		if name == "create_list" {
+		if name == "create_list" || name == "delete_list" {
 			kind = "list"
+		}
+		noun := "Task"
+		if kind == "list" {
+			noun = "List"
 		}
 		now := float64(time.Now().UnixMilli())
 		device := "00000000-0000-4000-8000-000000000001"
@@ -219,7 +295,7 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 			}
 			p = Object{"id": uuid.NewString(), "ownerId": owner, "version": float64(0), "rank": rank}
 			if kind == "task" {
-				for k, v := range (Object{"title": a["title"], "completed": false, "dueDate": nil, "plannedDate": nil, "listId": nil, "createdAt": now, "updatedAt": now}) {
+				for k, v := range (Object{"title": a["title"], "description": nil, "completed": false, "dueDate": nil, "plannedDate": nil, "listId": nil, "createdAt": now, "updatedAt": now}) {
 					p[k] = v
 				}
 			} else {
@@ -231,10 +307,10 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 				return err
 			}
 			if p["remoteRevision"] != a["expectedRevision"] {
-				return conflict("Task changed since it was read; fetch the current revision")
+				return conflict(noun + " changed since it was read; fetch the current revision")
 			}
 			if p["deletedAt"] != nil {
-				return conflict("Deleted tasks cannot be edited")
+				return conflict("Deleted " + strings.ToLower(noun) + "s cannot be edited")
 			}
 		}
 		wasCompleted, _ := p["completed"].(bool)
@@ -250,7 +326,7 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 			changes["name"] = a["name"]
 		case "complete_task":
 			changes["completed"] = true
-		case "delete_task":
+		case "delete_task", "delete_list":
 			changes["deletedAt"] = now
 		default:
 			changes = obj(a["changes"])
@@ -264,25 +340,7 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 				return bad("List is deleted")
 			}
 		}
-		stamps := Object{}
-		counter := num(p["version"])
-		for _, f := range fields(kind) {
-			s := stamp(p, f)
-			stamps[f] = s
-			counter = math.Max(counter, num(s["counter"]))
-		}
-		counter++
-		for k, v := range changes {
-			p[k] = v
-		}
-		for _, f := range fields(kind) {
-			_, changed := changes[f]
-			if (create && p[f] != nil) || (!create && changed) {
-				stamps[f] = Object{"counter": counter, "deviceId": device}
-			}
-		}
-		p["version"] = counter
-		p["fieldVersions"] = stamps
+		counter := stampChanges(p, changes, kind, create, device)
 		if kind == "task" {
 			p["updatedAt"] = now
 		}
@@ -290,7 +348,7 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 		if create {
 			op = "create"
 		}
-		if name == "delete_task" {
+		if name == "delete_task" || name == "delete_list" {
 			op = "delete"
 		}
 		ack, err := applyMutation(
@@ -310,6 +368,11 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 		)
 		if err != nil {
 			return err
+		}
+		if name == "delete_list" {
+			if err := detachListTasks(tx, owner, a, p, device, now); err != nil {
+				return err
+			}
 		}
 		if name == "complete_task" && !wasCompleted && p["recurrenceRule"] != nil {
 			if err := createRecurringSuccessor(tx, owner, p, device, now); err != nil {
@@ -380,6 +443,14 @@ func newMCP(app core.App) http.Handler {
 		"Create a list through the normal sync log.",
 		false,
 		false,
+	)
+	registerTool[DeleteListInput](
+		server,
+		app,
+		"delete_list",
+		"Delete a list using a sync tombstone. Its tasks stay and lose the list unless deleteTasks is true. There is no restore command.",
+		false,
+		true,
 	)
 	return mcp.NewStreamableHTTPHandler(
 		func(*http.Request) *mcp.Server { return server },

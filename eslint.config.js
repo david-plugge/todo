@@ -9,6 +9,8 @@ export default [
   {
     ignores: [
       'node_modules/**',
+      // Session worktrees carry their own checkouts; they lint themselves.
+      '.claude/**',
       '.svelte-kit/**',
       '.test-build/**',
       '.tools/**',
@@ -49,6 +51,11 @@ export default [
         { argsIgnorePattern: '^_', caughtErrorsIgnorePattern: '^_' },
       ],
     },
+  },
+  // The Svelte parser also claims rune modules; it needs the TS parser for them.
+  {
+    files: ['**/*.svelte.ts'],
+    languageOptions: { parserOptions: { parser: ts.parser } },
   },
   // Svelte bindable props write through to the parent even without a local read.
   {

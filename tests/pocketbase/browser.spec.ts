@@ -50,8 +50,9 @@ test('two isolated devices: SSE only triggers pull, tasks/lists and tombstones p
     release();
     await expect(second.getByTestId('account-task')).toContainText('SSE verified');
     await second.unroute('**/api/todo/pull**');
-    await first.getByLabel('Neue Liste', { exact: true }).fill('Shared inbox');
-    await first.getByLabel('Neue Liste', { exact: true }).press('Enter');
+    await first.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+    await first.getByLabel('Name der neuen Liste', { exact: true }).fill('Shared inbox');
+    await first.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
     await expect(second.getByTestId('account-list')).toHaveText('Shared inbox');
     await second.getByTestId('account-task').getByRole('checkbox').click();
     await expect(first.getByTestId('account-task').getByRole('checkbox')).toBeChecked();

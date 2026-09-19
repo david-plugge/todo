@@ -23,7 +23,7 @@
   </DropdownMenu.Trigger>
   <DropdownMenu.Portal>
     <DropdownMenu.Content
-      class="z-120 min-w-37 rounded-[7px] border border-border bg-canvas p-1 shadow-[0_8px_24px_#28332224]"
+      class="z-120 min-w-37 rounded-[7px] border border-border bg-surface p-1 shadow-menu"
       sideOffset={6}
       align="end"
     >

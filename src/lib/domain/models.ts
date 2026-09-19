@@ -9,6 +9,7 @@ export interface Task {
   remoteRevision?: number;
   fieldVersions?: FieldVersions;
   title: string;
+  description?: string | null;
   completed: boolean;
   rank?: string;
   dueDate?: string | null;
@@ -72,6 +73,7 @@ export function taskSnapshot(task: Task): Task {
     version: task.version,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
+    ...(task.description === undefined ? {} : { description: task.description }),
     ...(task.rank === undefined ? {} : { rank: task.rank }),
     ...(task.dueDate === undefined ? {} : { dueDate: task.dueDate }),
     ...(task.plannedDate === undefined ? {} : { plannedDate: task.plannedDate }),

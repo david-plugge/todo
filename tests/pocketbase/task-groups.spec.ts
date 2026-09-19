@@ -55,8 +55,10 @@ test('contextual task views group completed tasks below the composer and restore
   await allButton.click();
   await expect(page.getByRole('heading', { name: 'Alle Aufgaben', exact: true })).toBeVisible();
 
-  await page.getByLabel('Neue Liste', { exact: true }).fill(listName);
-  await page.getByLabel('Neue Liste', { exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Neue Liste', exact: true }).click();
+
+  await page.getByLabel('Name der neuen Liste', { exact: true }).fill(listName);
+  await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
 
   await create(page, openTitle, { list: listName });
   await create(page, completedTitle, { list: listName });

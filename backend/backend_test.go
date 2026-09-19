@@ -1686,3 +1686,171 @@ func TestMCPCompletionCreatesRecurringSuccessorOnce(t *testing.T) {
 		t.Fatalf("retry created duplicates: got %d tasks", len(rows))
 	}
 }
+
+func TestMCPDeleteListDetachesOrDeletesItsTasks(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		deleteTasks bool
+	}{
+		{name: "keeps tasks"},
+		{name: "deletes tasks", deleteTasks: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			app := openTestApp(t, t.TempDir())
+			users, err := app.FindCollectionByNameOrId("todo_users")
+			if err != nil {
+				t.Fatal(err)
+			}
+			user := core.NewRecord(users)
+			user.SetEmail("list-delete@example.com")
+			user.SetPassword("long-test-password")
+			if err := app.Save(user); err != nil {
+				t.Fatal(err)
+			}
+			owner := user.Id
+
+			created, err := callTool(
+				app,
+				owner,
+				"create_list",
+				Object{"mutationId": uuid.NewString(), "name": "Projekte"},
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			list := obj(created["entity"])
+			task, err := callTool(app, owner, "create_task", Object{
+				"mutationId": uuid.NewString(), "title": "gehört zur Liste", "listId": list["id"],
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			taskID := str(obj(task["entity"])["id"])
+			unrelated, err := callTool(
+				app,
+				owner,
+				"create_task",
+				Object{"mutationId": uuid.NewString(), "title": "ohne Liste"},
+			)
+			if err != nil {
+				t.Fatal(err)
+			}
+			untouched := obj(unrelated["entity"])
+
+			mutationID := uuid.NewString()
+			arguments := Object{"mutationId": mutationID, "id": list["id"], "expectedRevision": list["remoteRevision"]}
+			if test.deleteTasks {
+				arguments["deleteTasks"] = true
+			}
+			deleted, err := callTool(app, owner, "delete_list", arguments)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if obj(deleted["entity"])["deletedAt"] == nil {
+				t.Fatal("list was not tombstoned")
+			}
+
+			affected, err := entity(app, owner, "task", taskID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if test.deleteTasks {
+				if affected["deletedAt"] == nil {
+					t.Fatalf("task was not tombstoned: %v", affected)
+				}
+			} else {
+				if affected["deletedAt"] != nil || affected["listId"] != nil {
+					t.Fatalf("task should survive without a list: %v", affected)
+				}
+			}
+			other, err := entity(app, owner, "task", str(untouched["id"]))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if other["remoteRevision"] != untouched["remoteRevision"] {
+				t.Fatalf("unrelated task was rewritten: %v", other)
+			}
+
+			revision := affected["remoteRevision"]
+			if _, err := callTool(app, owner, "delete_list", arguments); err != nil {
+				t.Fatalf("retry with the same mutation ID failed: %v", err)
+			}
+			replayed, err := entity(app, owner, "task", taskID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if replayed["remoteRevision"] != revision {
+				t.Fatalf("retry created another task revision: %v != %v", replayed["remoteRevision"], revision)
+			}
+
+			stale := Object{
+				"mutationId":       uuid.NewString(),
+				"id":               list["id"],
+				"expectedRevision": list["remoteRevision"],
+			}
+			if _, err := callTool(app, owner, "delete_list", stale); err == nil {
+				t.Fatal("expected a stale revision to be rejected")
+			}
+		})
+	}
+}
+
+func TestMCPDescriptionRoundTripAndSearch(t *testing.T) {
+	app := openTestApp(t, t.TempDir())
+	users, err := app.FindCollectionByNameOrId("todo_users")
+	if err != nil {
+		t.Fatal(err)
+	}
+	user := core.NewRecord(users)
+	user.SetEmail("notes@example.com")
+	user.SetPassword("long-test-password")
+	if err := app.Save(user); err != nil {
+		t.Fatal(err)
+	}
+	owner := user.Id
+
+	created, err := callTool(app, owner, "create_task", Object{
+		"mutationId": uuid.NewString(), "title": "Steuer", "description": "Belege **sammeln**",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := obj(created["entity"])
+	if task["description"] != "Belege **sammeln**" {
+		t.Fatalf("description was not stored: %v", task)
+	}
+	if _, err := callTool(app, owner, "create_task", Object{
+		"mutationId": uuid.NewString(), "title": "Ohne Notiz",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	// The query filter must reach the note, not just the title.
+	found, err := callTool(app, owner, "list_tasks", Object{"query": "Belege"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, _ := found["items"].([]Object)
+	if len(items) != 1 || items[0]["id"] != task["id"] {
+		t.Fatalf("search did not match the description: %v", found)
+	}
+
+	cleared, err := callTool(app, owner, "update_task", Object{
+		"mutationId": uuid.NewString(), "id": task["id"], "expectedRevision": task["remoteRevision"],
+		"changes": Object{"description": nil},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if obj(cleared["entity"])["description"] != nil {
+		t.Fatalf("description was not cleared: %v", cleared)
+	}
+
+	long := Object{
+		"mutationId": uuid.NewString(), "title": "Zu lang",
+		"description": strings.Repeat("x", 10001),
+	}
+	if _, err := callTool(app, owner, "create_task", long); err == nil {
+		t.Fatal("expected an over-long description to be rejected")
+	}
+}

@@ -54,7 +54,7 @@
   </h2>
   <p class="leading-[1.6]">Hier kannst du den Zugriff eines Agenten auf dein Konto beenden.</p>
   <button
-    class="cursor-pointer rounded-lg border border-border bg-white px-3 py-2.5 text-text disabled:opacity-50"
+    class="cursor-pointer rounded-lg border border-border bg-surface px-3 py-2.5 text-text disabled:opacity-50"
     disabled={busy}
     onclick={load}>{loaded ? 'Aktualisieren' : 'Verbindungen laden'}</button
   >
@@ -62,7 +62,7 @@
     <div class="mt-3 flex items-center justify-between gap-4 rounded-lg border border-border p-3">
       <span><strong class="wrap-anywhere">{item.name}</strong><br />{scopeLabel(item.scope)}</span
       ><button
-        class="cursor-pointer rounded-lg border border-border bg-white px-3 py-2.5 text-text disabled:opacity-50"
+        class="cursor-pointer rounded-lg border border-border bg-surface px-3 py-2.5 text-text disabled:opacity-50"
         disabled={busy}
         onclick={() => revoke(item.id)}>Zugriff widerrufen</button
       >
