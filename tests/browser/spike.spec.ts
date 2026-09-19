@@ -106,7 +106,9 @@ test('second write fails AFTER task write; native abort and reload restore both 
     window.idbTrace = [];
   });
   await page.getByLabel('Outbox-Write absichtlich fehlschlagen lassen').check();
-  await page.getByTestId('task').getByRole('checkbox').check();
+  // click, not check: the rollback reverts the box, and check() would race that
+  // revert while asserting the state it just set.
+  await page.getByTestId('task').getByRole('checkbox').click();
   await expect(page.getByRole('status')).toContainText('Rollback: Absichtlicher Fehler');
   expect(await page.evaluate(() => window.idbTrace)).toEqual([
     {
