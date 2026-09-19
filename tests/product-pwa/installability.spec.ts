@@ -20,7 +20,7 @@ test('production build remains installable and opens offline after a browser res
     expect(manifest.errors).toEqual([]);
     expect(JSON.parse(manifest.data!)).toMatchObject({
       id: '/',
-      name: 'Freiraum',
+      name: 'Todo',
       start_url: '/',
       display: 'standalone',
     });

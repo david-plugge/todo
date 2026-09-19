@@ -40,8 +40,8 @@
 <svelte:head
   ><title
     >{account && page.url.searchParams.get('view') === 'settings'
-      ? 'Einstellungen · Freiraum'
-      : 'Freiraum · Deine Aufgaben'}</title
+      ? 'Einstellungen · Todo'
+      : 'Todo · Deine Aufgaben'}</title
   ><meta name="theme-color" content="#173b35" /></svelte:head
 >
 <main class="m-0 p-0">
@@ -49,7 +49,7 @@
     {#key account.ownerId}<AccountTodo {account} logout={() => session.logout()} />{/key}
   {:else if !sessionReady}
     <section class="grid min-h-dvh place-items-center px-[18px] text-sm text-muted" role="status">
-      Dein Freiraum wird geladen …
+      Deine Aufgaben werden geladen …
     </section>
   {:else}
     <section class="mx-auto mt-[70px] mb-[85px] max-w-[390px] px-[18px] max-mobile:my-[45px]">

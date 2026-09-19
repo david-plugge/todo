@@ -23,8 +23,8 @@ const productionCheckCommand = "production-check"
 const (
 	trustedProxyHeaderEnv  = "TODO_TRUSTED_PROXY_HEADER"
 	trustedProxyCIDRsEnv   = "TODO_TRUSTED_PROXY_CIDRS"
-	verifiedClientIPHeader = "X-Freiraum-Verified-Client-IP"
-	trustedProxyReloadHook = "freiraumTrustedProxyReload"
+	verifiedClientIPHeader = "X-Todo-Verified-Client-IP"
+	trustedProxyReloadHook = "todoTrustedProxyReload"
 )
 
 type trustedProxyConfig struct {

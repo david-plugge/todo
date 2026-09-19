@@ -21,7 +21,7 @@
     href={resolve('/')}><ArrowLeft size={16} /> Zurück zu Aufgaben</a
   >
   <div class="mb-4 max-mobile:mb-3.5">
-    <p class="mb-2.5 text-[10px] font-semibold tracking-[0.06em] text-muted">DEIN FREIRAUM</p>
+    <p class="mb-2.5 text-[10px] font-semibold tracking-[0.06em] text-muted">DEIN KONTO</p>
     <h1
       class="m-0 text-[28px] leading-[1.3] font-bold tracking-[-0.8px] wrap-anywhere max-mobile:text-[26px]"
     >

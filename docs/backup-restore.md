@@ -1,6 +1,6 @@
 # Backup and restore runbook
 
-Freiraum uses PocketBase's consistent backup API. A backup includes `data.db`,
+Todo uses PocketBase's consistent backup API. A backup includes `data.db`,
 `auxiliary.db`, and local file storage, but not the `pb_data/backups` directory
 itself. Copy every completed backup to storage outside the application volume.
 
@@ -10,7 +10,7 @@ Create a named backup from a stopped application container (PocketBase's admin
 backup API remains the supported option for an online backup):
 
 ```sh
-./freiraum backup-create freiraum-2026-09-18.zip \
+./todo backup-create todo-2026-09-18.zip \
   --dir /app/pb_data \
   --encryptionEnv PB_ENCRYPTION_KEY
 ```
@@ -27,21 +27,21 @@ A restore never overwrites the active data directory. First stop the service and
 extract the archive into a new, empty volume:
 
 ```sh
-./freiraum restore-new \
-  --backup /restore-input/freiraum-2026-09-18.zip \
+./todo restore-new \
+  --backup /restore-input/todo-2026-09-18.zip \
   --target /restore-output/pb_data \
   --restore-id 4fa496eb-48d7-4bd2-a36a-26ad9c20771b
 ```
 
 `restore-id` must be generated outside the backup and retained in the deployment
 log. The command rejects non-empty targets, path traversal, and symlinks. It
-writes `.freiraum-restore-pending` before extraction. A normal server process
+writes `.todo-restore-pending` before extraction. A normal server process
 refuses to start while that marker exists.
 
 Before the restored volume can be activated, run the finalization transaction:
 
 ```sh
-./freiraum restore-finalize \
+./todo restore-finalize \
   --dir /restore-output/pb_data \
   --restore-id 4fa496eb-48d7-4bd2-a36a-26ad9c20771b \
   --encryptionEnv PB_ENCRYPTION_KEY

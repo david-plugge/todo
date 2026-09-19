@@ -6,7 +6,7 @@ import { expect } from '@playwright/test';
 import { once } from 'node:events';
 export default async function setup() {
   const temporary = await mkdtemp(join(tmpdir(), 'todo-pocketbase-'));
-  const binary = resolve('.tools/freiraum');
+  const binary = resolve('.tools/todo');
   const names = [
     'oauth-user',
     'mcp-race',

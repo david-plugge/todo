@@ -26,18 +26,18 @@ ARG TARGETOS
 ARG TARGETARCH
 RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH \
-    go build -trimpath -ldflags="-s -w" -o /out/freiraum .
+    go build -trimpath -ldflags="-s -w" -o /out/todo .
 
 FROM alpine:3.22.1 AS runtime
 
 RUN apk add --no-cache ca-certificates tzdata \
-    && addgroup -S -g 10001 freiraum \
-    && adduser -S -D -H -u 10001 -G freiraum freiraum \
+    && addgroup -S -g 10001 todo \
+    && adduser -S -D -H -u 10001 -G todo todo \
     && mkdir -p /app/pb_data \
     && chown -R 10001:10001 /app
 
 WORKDIR /app
-COPY --from=backend --chown=10001:10001 /out/freiraum ./freiraum
+COPY --from=backend --chown=10001:10001 /out/todo ./todo
 COPY --from=frontend --chown=10001:10001 /src/pb_public ./pb_public
 COPY --chmod=755 --chown=10001:10001 docker-entrypoint.sh ./docker-entrypoint.sh
 

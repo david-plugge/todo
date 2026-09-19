@@ -6,9 +6,9 @@ if [ "$#" -ne 0 ]; then
   exit 64
 fi
 
-/app/freiraum production-check
+/app/todo production-check
 
-exec /app/freiraum serve \
+exec /app/todo serve \
   --http=0.0.0.0:8090 \
   --dir=/app/pb_data \
   --publicDir=/app/pb_public \

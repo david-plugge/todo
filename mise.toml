@@ -5,7 +5,7 @@ golangci-lint = "2.13.2"
 
 [tasks."backend:build"]
 dir = "backend"
-run = "go build -o ../.tools/freiraum ."
+run = "go build -o ../.tools/todo ."
 
 [tasks."backend:format"]
 dir = "backend"

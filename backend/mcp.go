@@ -323,7 +323,7 @@ func callTool(app core.App, owner, name string, a Object) (Object, error) {
 	return result, err
 }
 func newMCP(app core.App) http.Handler {
-	server := mcp.NewServer(&mcp.Implementation{Name: "freiraum-pocketbase", Version: "1.0.0"}, nil)
+	server := mcp.NewServer(&mcp.Implementation{Name: "todo-pocketbase", Version: "1.0.0"}, nil)
 	registerTool[ListTasksInput](
 		server,
 		app,

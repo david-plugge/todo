@@ -149,7 +149,7 @@ func TestRestoreArchiveCannotReplacePendingMarker(t *testing.T) {
 
 func TestBinaryHonorsPendingMarkerForCustomDataDir(t *testing.T) {
 	root := t.TempDir()
-	binary := filepath.Join(root, "freiraum-test")
+	binary := filepath.Join(root, "todo-test")
 	build := exec.Command("go", "build", "-o", binary, ".")
 	if output, err := build.CombinedOutput(); err != nil {
 		t.Fatalf("build test binary: %v\n%s", err, output)

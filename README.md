@@ -1,4 +1,4 @@
-# Freiraum — Local-first Todo
+# Todo — Local-first Aufgabenverwaltung
 
 Svelte 5 / SvelteKit SPA → TanStack DB → eigener Dexie-Adapter → IndexedDB. Aufgaben und Outbox werden gemeinsam gespeichert. Offline-Reads und -Writes benötigen kein Backend. Crash-Sicherheit, PWA-Metadaten sowie unveränderliche Push-Snapshots, Retry und versionsgebundene ACKs sind automatisiert geprüft.
 
@@ -11,7 +11,7 @@ Node.js 24, pnpm und mise (Paketmanager/Go/Linter); geprüft mit Node 24.20.0 un
 ```sh
 mise install
 pnpm install --frozen-lockfile
-pnpm run dev             # Freiraum-Frontend (für Anmeldung den Backend-Server starten)
+pnpm run dev             # Todo-Frontend (für Anmeldung den Backend-Server starten)
 pnpm run test            # Unit-Tests für Ranking, Daten, Merge und IndexedDB
 pnpm run verify          # Format, Lint, Typprüfung, Unit-Tests und Build
 pnpm run build           # statische Dateien nach pb_public/
@@ -36,7 +36,7 @@ Das native Go-Backend integriert das offizielle MCP-SDK und acht typisierte Aufg
 
 ## PocketBase lokal
 
-Freiraum verbindet die App unter `/` mit PocketBase: Auth, getrennte Benutzerdatenbanken, Owner-Regeln, transaktionaler Push, stabiler Pull-Cursor und SSE als Pull-Trigger. `/account` bleibt als Weiterleitung für bestehende Links erhalten.
+Todo verbindet die App unter `/` mit PocketBase: Auth, getrennte Benutzerdatenbanken, Owner-Regeln, transaktionaler Push, stabiler Pull-Cursor und SSE als Pull-Trigger. `/account` bleibt als Weiterleitung für bestehende Links erhalten.
 
 ```sh
 pnpm run backend:install

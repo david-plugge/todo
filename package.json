@@ -1,5 +1,5 @@
 {
-  "name": "freiraum",
+  "name": "todo",
   "description": "Local-first Aufgabenverwaltung",
   "private": true,
   "version": "0.0.0",
@@ -14,7 +14,7 @@
     "test:browser": "pnpm run build:harness && playwright test",
     "test:pwa": "pnpm run build && playwright test --config playwright.product-pwa.config.ts",
     "test:pocketbase": "pnpm run build && playwright test --config playwright.pocketbase.config.ts",
-    "backend": "TODO_PUBLIC_URL=${TODO_PUBLIC_URL:-http://127.0.0.1:8090} .tools/freiraum serve --http=127.0.0.1:8090 --dir=pb_data --publicDir=pb_public",
+    "backend": "TODO_PUBLIC_URL=${TODO_PUBLIC_URL:-http://127.0.0.1:8090} .tools/todo serve --http=127.0.0.1:8090 --dir=pb_data --publicDir=pb_public",
     "backend:install": "pnpm run backend:build",
     "test:startup": "playwright test --config playwright.pocketbase.config.ts server-start",
     "format": "prettier --write .",

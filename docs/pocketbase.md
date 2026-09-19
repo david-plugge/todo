@@ -21,7 +21,7 @@ nicht bereits gesetzt ist. Ein direkter Binary- oder Containerstart bleibt fail-
 **Der Server öffnet keinen Browser automatisch.** [`backend/main.go`](../backend/main.go) setzt `ServeEvent.InstallerFunc` auf `nil`. Das gilt auch für frische Testdatenbanken. Einen ersten Superuser explizit mit eigener E-Mail und eigenem Passwort anlegen:
 
 ```sh
-.tools/freiraum superuser create 'ADMIN_EMAIL' 'ADMIN_PASSWORT' --dir=pb_data
+.tools/todo superuser create 'ADMIN_EMAIL' 'ADMIN_PASSWORT' --dir=pb_data
 ```
 
 Danach im Dashboard in `todo_users` die normalen App-Benutzer mit E-Mail und Passwort anlegen. Es gibt absichtlich keine öffentliche Registrierung und keine produktiven Standardzugangsdaten. Testbenutzer werden nur im temporären Test-Launcher angelegt. Für eine Vorschau in Codex die lokale App-URL im Browser-Panel öffnen; der Server selbst steuert keine Fenster.

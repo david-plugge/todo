@@ -52,17 +52,14 @@
 </script>
 
 <svelte:head
-  ><title>Agent verbinden · Freiraum</title><meta
-    name="referrer"
-    content="no-referrer"
-  /></svelte:head
+  ><title>Agent verbinden · Todo</title><meta name="referrer" content="no-referrer" /></svelte:head
 >
 <main class="mx-auto my-[8vh] max-w-120 p-6">
-  <a href={resolve('/')} class="text-2xl font-bold text-inherit no-underline">freiraum.</a>
+  <a href={resolve('/')} class="text-2xl font-bold text-inherit no-underline">todo.</a>
   <h1 class="mt-9 text-2xl font-bold">Agent verbinden</h1>
   {#if details}
     <p class="leading-[1.6]">
-      <strong>{details.clientName}</strong> möchte auf dein Freiraum-Konto zugreifen.
+      <strong>{details.clientName}</strong> möchte auf dein Todo-Konto zugreifen.
     </p>
     <p class="text-sm leading-[1.6] wrap-anywhere text-muted">
       Rückleitung an <strong>{details.redirectOrigin}</strong>

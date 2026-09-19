@@ -378,7 +378,7 @@ test('mobile layout: create dated task in list, filter and reorder lists', async
   await page.getByRole('button', { name: 'Mehr', exact: true }).click();
   await page.getByRole('button', { name: 'Privat', exact: true }).click();
   await expect(page).not.toHaveURL(/view=settings/);
-  await expect(page).toHaveTitle('Freiraum · Deine Aufgaben');
+  await expect(page).toHaveTitle('Todo · Deine Aufgaben');
   await expect(page.getByTestId('task-title')).toHaveText('Termin planen');
   await expect(page.locator('main > header, main > footer')).toHaveCount(0);
   await expect(page.getByTestId('account-sync-status')).toBeHidden();

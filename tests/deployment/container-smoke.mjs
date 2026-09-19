@@ -2,9 +2,9 @@ import { spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 
 const suffix = `${process.pid}-${Date.now()}`;
-const image = `freiraum-smoke:${suffix}`;
-const container = `freiraum-smoke-${suffix}`;
-const volume = `freiraum-smoke-${suffix}`;
+const image = `todo-smoke:${suffix}`;
+const container = `todo-smoke-${suffix}`;
+const volume = `todo-smoke-${suffix}`;
 const port = 18_000 + (process.pid % 1_000);
 const origin = `http://127.0.0.1:${port}`;
 const key = '0123456789abcdef0123456789abcdef';
@@ -124,7 +124,7 @@ try {
     'run',
     '--rm',
     '--entrypoint',
-    '/app/freiraum',
+    '/app/todo',
     '--env',
     'TODO_PUBLIC_URL=https://tasks.example.com',
     '--env',
@@ -142,7 +142,7 @@ try {
     'run',
     '--rm',
     '--entrypoint',
-    '/app/freiraum',
+    '/app/todo',
     '--env',
     `PB_ENCRYPTION_KEY=${key}`,
     '--env',
@@ -166,7 +166,7 @@ try {
   if (!html.includes('<html lang="de">') || !html.includes('/_app/immutable/entry/start.'))
     throw new Error('app shell was not served');
   const manifest = await (await fetch(`${origin}/manifest.webmanifest`)).json();
-  if (manifest.name !== 'Freiraum') throw new Error('manifest was not served');
+  if (manifest.name !== 'Todo') throw new Error('manifest was not served');
   const discovery = await (await fetch(`${origin}/.well-known/oauth-authorization-server`)).json();
   if (discovery.issuer !== origin) throw new Error('OAuth discovery uses the wrong issuer');
 

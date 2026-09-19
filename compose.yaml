@@ -1,19 +1,19 @@
 services:
-  freiraum:
-    image: ${FREIRAUM_IMAGE:-freiraum}:${FREIRAUM_TAG:-local}
+  todo:
+    image: ${TODO_IMAGE:-todo}:${TODO_TAG:-local}
     build:
       context: .
     restart: unless-stopped
     init: true
     ports:
-      - '${FREIRAUM_BIND_ADDRESS:-127.0.0.1}:${FREIRAUM_PORT:-8090}:8090'
+      - '${TODO_BIND_ADDRESS:-127.0.0.1}:${TODO_PORT:-8090}:8090'
     environment:
       TODO_PUBLIC_URL: ${TODO_PUBLIC_URL:?TODO_PUBLIC_URL is required}
       PB_ENCRYPTION_KEY: ${PB_ENCRYPTION_KEY:?PB_ENCRYPTION_KEY is required}
       TODO_TRUSTED_PROXY_HEADER: ${TODO_TRUSTED_PROXY_HEADER:-}
       TODO_TRUSTED_PROXY_CIDRS: ${TODO_TRUSTED_PROXY_CIDRS:-}
     volumes:
-      - freiraum-data:/app/pb_data
+      - todo-data:/app/pb_data
     read_only: true
     tmpfs:
       - /tmp
@@ -32,4 +32,4 @@ services:
       replicas: 1
 
 volumes:
-  freiraum-data:
+  todo-data:

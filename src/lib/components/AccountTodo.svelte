@@ -254,7 +254,7 @@
         >
           <div use:dragging.controls>
             <div class="flex items-center justify-between">
-              <Dialog.Title class="text-base font-semibold">Dein Freiraum</Dialog.Title
+              <Dialog.Title class="text-base font-semibold">Deine Aufgaben</Dialog.Title
               ><Dialog.Close
                 class="min-h-11 min-w-11 border-0 bg-transparent"
                 aria-label="Menü schließen"><X size={20} /></Dialog.Close

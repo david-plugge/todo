@@ -76,12 +76,12 @@
     class="mx-1 mb-[22px] flex shrink-0 items-center gap-2.25 text-[23px] font-bold tracking-[-1px] text-[#314e33] no-underline max-mobile:hidden"
     onclick={navigate}
     href={resolve('/')}
-    aria-label="Freiraum"
+    aria-label="Todo"
   >
     <span class="grid size-[30px] place-items-center rounded-[9px] bg-accent text-white"
       ><Check size={21} aria-hidden="true" /></span
     >
-    <span>freiraum<span class="text-[#9bad70]">.</span></span>
+    <span>todo<span class="text-[#9bad70]">.</span></span>
   </a>
   <nav class="grid gap-0.5 max-mobile:grid-cols-2" aria-label="Ansichten">
     <button
@@ -150,7 +150,7 @@
   <div class="m-0 p-0">
     <SortableRows
       items={orderedLists}
-      type="freiraum-list"
+      type="todo-list"
       label="Listen"
       itemLabel={(list) => list.name}
       {session}

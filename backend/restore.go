@@ -20,7 +20,7 @@ import (
 const (
 	restoreNewCommand      = "restore-new"
 	restoreFinalizeCommand = "restore-finalize"
-	restoreMarkerName      = ".freiraum-restore-pending"
+	restoreMarkerName      = ".todo-restore-pending"
 )
 
 func restoreMarker(dataDir string) string { return filepath.Join(dataDir, restoreMarkerName) }

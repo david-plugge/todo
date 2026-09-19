@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Freiraum",
-  "short_name": "Freiraum",
+  "name": "Todo",
+  "short_name": "Todo",
   "description": "Deine Aufgaben – auch offline verfügbar",
   "lang": "de",
   "start_url": "/",

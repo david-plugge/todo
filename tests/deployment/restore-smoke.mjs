@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 const suffix = `${process.pid}-${Date.now()}`;
-const image = `freiraum-restore-smoke:${suffix}`;
-const oldContainer = `freiraum-restore-old-${suffix}`;
-const restoredContainer = `freiraum-restore-new-${suffix}`;
-const exportContainer = `freiraum-restore-export-${suffix}`;
-const oldVolume = `freiraum-restore-old-${suffix}`;
-const restoredVolume = `freiraum-restore-new-${suffix}`;
+const image = `todo-restore-smoke:${suffix}`;
+const oldContainer = `todo-restore-old-${suffix}`;
+const restoredContainer = `todo-restore-new-${suffix}`;
+const exportContainer = `todo-restore-export-${suffix}`;
+const oldVolume = `todo-restore-old-${suffix}`;
+const restoredVolume = `todo-restore-new-${suffix}`;
 const port = 19_000 + (process.pid % 500);
 const origin = `http://127.0.0.1:${port}`;
 const key = '0123456789abcdef0123456789abcdef';
@@ -18,7 +18,7 @@ const email = 'restore-smoke@example.test';
 const password = 'restore-smoke-password';
 const backupName = 'restore-smoke.zip';
 const restoreId = randomUUID();
-const temporary = await mkdtemp(join(tmpdir(), 'freiraum-restore-smoke-'));
+const temporary = await mkdtemp(join(tmpdir(), 'todo-restore-smoke-'));
 const exportedBackup = join(temporary, 'backup.zip');
 
 function command(args, options = {}) {
@@ -168,7 +168,7 @@ try {
     'run',
     '--rm',
     '--entrypoint',
-    '/app/freiraum',
+    '/app/todo',
     '--env',
     `PB_ENCRYPTION_KEY=${key}`,
     '--env',
@@ -193,7 +193,7 @@ try {
     'run',
     '--rm',
     '--entrypoint',
-    '/app/freiraum',
+    '/app/todo',
     '--env',
     `PB_ENCRYPTION_KEY=${key}`,
     '--volume',
@@ -220,7 +220,7 @@ try {
     'run',
     '--rm',
     '--entrypoint',
-    '/app/freiraum',
+    '/app/todo',
     '--volume',
     `${restoredVolume}:/app/pb_data`,
     '--volume',
@@ -259,7 +259,7 @@ try {
     'run',
     '--rm',
     '--entrypoint',
-    '/app/freiraum',
+    '/app/todo',
     '--env',
     `PB_ENCRYPTION_KEY=${key}`,
     '--volume',

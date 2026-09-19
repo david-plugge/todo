@@ -6,7 +6,7 @@ import {
   type DndEventInfo,
 } from 'svelte-dnd-action';
 
-export const taskDragType = 'freiraum-task';
+export const taskDragType = 'todo-task';
 export const flipDurationMs = 160;
 
 /** Shared by source and sidebar destinations, which both finalize a cross-zone drop. */

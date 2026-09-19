@@ -1,6 +1,6 @@
 # Container-Deployment
 
-Freiraum wird als ein einzelnes Image ausgeliefert. Das Image baut die Svelte-App und das Go-Backend in getrennten Stufen; zur Laufzeit enthält es weder Node.js noch pnpm noch den Go-Compiler. PocketBase und SQLite laufen mit genau einer Replik und einem persistenten Volume.
+Todo wird als ein einzelnes Image ausgeliefert. Das Image baut die Svelte-App und das Go-Backend in getrennten Stufen; zur Laufzeit enthält es weder Node.js noch pnpm noch den Go-Compiler. PocketBase und SQLite laufen mit genau einer Replik und einem persistenten Volume.
 
 ## Konfiguration
 
@@ -30,7 +30,7 @@ docker compose ps
 curl --fail "$TODO_PUBLIC_URL/api/health"
 ```
 
-Compose bindet standardmäßig nur an `127.0.0.1:8090`. `FREIRAUM_BIND_ADDRESS`, `FREIRAUM_PORT`, `FREIRAUM_IMAGE` und `FREIRAUM_TAG` können für die Zielumgebung überschrieben werden. Das Root-Dateisystem ist read-only; nur `/app/pb_data` ist persistent und `/tmp` ist ein flüchtiges `tmpfs`.
+Compose bindet standardmäßig nur an `127.0.0.1:8090`. `TODO_BIND_ADDRESS`, `TODO_PORT`, `TODO_IMAGE` und `TODO_TAG` können für die Zielumgebung überschrieben werden. Das Root-Dateisystem ist read-only; nur `/app/pb_data` ist persistent und `/tmp` ist ein flüchtiges `tmpfs`.
 
 ## GitHub Container Registry
 
@@ -39,15 +39,15 @@ Pushes auf `main` und manuell gestartete Publish-Workflows erzeugen ein Multi-Ar
 Für ein Deployment wird nicht `latest`, sondern der SHA-Tag zusammen mit dem von GHCR ausgegebenen Multi-Arch-Manifest-Digest verwendet. Docker akzeptiert dafür eine kombinierte Tag-und-Digest-Referenz:
 
 ```dotenv
-FREIRAUM_IMAGE=ghcr.io/david-plugge/todo
-FREIRAUM_TAG=sha-0123456789abcdef0123456789abcdef01234567@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+TODO_IMAGE=ghcr.io/david-plugge/todo
+TODO_TAG=sha-0123456789abcdef0123456789abcdef01234567@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
 ```
 
 Damit bleibt im Compose-Vertrag sichtbar, welcher Commit deployt wurde, während der Digest exakt die geprüften Bytes festlegt. Auf dem Zielhost wird das Image explizit gepullt; `--no-build` verhindert, dass Compose stattdessen aus dem lokalen Checkout baut:
 
 ```sh
-docker compose pull freiraum
-docker compose up -d --no-build freiraum
+docker compose pull todo
+docker compose up -d --no-build todo
 docker compose ps
 curl --fail "$TODO_PUBLIC_URL/api/health"
 ```
@@ -58,8 +58,8 @@ Einen App-Benutzer legt ein einmaliger Admin-Job an. Das Passwort wird nur als P
 
 ```sh
 TODO_USER_PASSWORD='...' docker compose run --rm \
-  --entrypoint /app/freiraum \
-  freiraum user-create user@example.com \
+  --entrypoint /app/todo \
+  todo user-create user@example.com \
   --dir=/app/pb_data \
   --encryptionEnv=PB_ENCRYPTION_KEY
 ```
@@ -79,7 +79,7 @@ TODO_TRUSTED_PROXY_CIDRS=172.20.0.5/32
 
 Als Header sind ausschließlich `X-Forwarded-For`, `X-Real-IP` und `CF-Connecting-IP` zulässig. `TODO_TRUSTED_PROXY_CIDRS` bezeichnet die direkten Peer-Adressen des eigenen Proxys, kommasepariert als CIDR; `0.0.0.0/0` und `::/0` werden abgelehnt. Möglichst werden exakte `/32`- beziehungsweise `/128`-Adressen verwendet. Fehlt eine der beiden Variablen oder ist sie ungültig, verweigert der Container den Start.
 
-Der letzte vertrauenswürdige Proxy muss den ausgewählten Header von eingehenden Requests entfernen und selbst neu setzen. Bei `X-Forwarded-For` verwendet Freiraum den rechtsstehenden gültigen Wert. Das ist für einen einzelnen Proxy gedacht, der den Header ersetzt. Bei mehreren Proxy-Stufen muss die letzte Stufe zuerst eine bereits validierte Client-IP auf einen einzelnen `X-Real-IP`-Wert reduzieren; eine ungeprüft angehängte Client-Kette ist kein unterstützter Vertrauensvertrag. Selbst mit passendem Header wird die weitergereichte IP nur übernommen, wenn die direkte Peer-IP in `TODO_TRUSTED_PROXY_CIDRS` liegt; ansonsten werden externe wie interne Forwarding-Werte entfernt.
+Der letzte vertrauenswürdige Proxy muss den ausgewählten Header von eingehenden Requests entfernen und selbst neu setzen. Bei `X-Forwarded-For` verwendet Todo den rechtsstehenden gültigen Wert. Das ist für einen einzelnen Proxy gedacht, der den Header ersetzt. Bei mehreren Proxy-Stufen muss die letzte Stufe zuerst eine bereits validierte Client-IP auf einen einzelnen `X-Real-IP`-Wert reduzieren; eine ungeprüft angehängte Client-Kette ist kein unterstützter Vertrauensvertrag. Selbst mit passendem Header wird die weitergereichte IP nur übernommen, wenn die direkte Peer-IP in `TODO_TRUSTED_PROXY_CIDRS` liegt; ansonsten werden externe wie interne Forwarding-Werte entfernt.
 
 ## Betriebsgrenzen
 
@@ -104,7 +104,7 @@ Dynamische OAuth-Registrierung hat zusätzlich ein datenbankweit und transaktion
 
 Ein Client gilt erst nach einer authentifizierten, genehmigten Grant-Erstellung als benutzt; das bloße Starten oder Ablehnen eines Authorization-Flows aktualisiert seine Nutzungszeit nicht. Pro Grant-Familie wird eine erste vorgezogene Refresh-Rotation aus Kompatibilitätsgründen akzeptiert. Danach müssen Rotationen mindestens zehn Minuten auseinanderliegen, andernfalls antwortet der Token-Endpunkt mit HTTP 429 und `Retry-After`. Alte Access-Zeilen werden sofort gelöscht. Verbrauchte Refresh-Tokens werden auf Hash, Familie und Ablaufzeit reduziert, sodass die Replay-Erkennung erhalten bleibt, ohne vollständige Token-Datensätze anzusammeln. Bei 4.096 Replay-Hashes wird die Familie widerrufen und muss neu autorisiert werden.
 
-Der Cron-Job `freiraumOAuthCleanup` läuft täglich um `03:23 UTC`. Er löscht ausschließlich:
+Der Cron-Job `todoOAuthCleanup` läuft täglich um `03:23 UTC`. Er löscht ausschließlich:
 
 - abgelaufene offene OAuth-Zustimmungsanfragen und
 - vollständige Tokenfamilien, in denen kein unverbrauchter, noch gültiger Code, Access- oder Refresh-Token existiert, und

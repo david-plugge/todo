@@ -9,7 +9,7 @@ import (
 	"github.com/pocketbase/pocketbase/core"
 )
 
-const oauthCleanupJobID = "freiraumOAuthCleanup"
+const oauthCleanupJobID = "todoOAuthCleanup"
 
 const (
 	// Public dynamic registration has no authenticated principal that could own a
