@@ -3,6 +3,7 @@ import { expect, test, type Page, type APIRequestContext } from '@playwright/tes
 import { initialVersions, taskFields, stampChanges } from '../../src/lib/domain/versions';
 import type { Task } from '../../src/lib/domain/models';
 import { bootstrapSyncGeneration, syncHeaders } from './sync-api';
+import { backendAddress } from '../fixtures/backend-address';
 const devices = ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'];
 async function login(page: Page, name: string) {
   await page.goto('/account');
@@ -52,7 +53,7 @@ for (const kind of ['different', 'same', 'delete'])
     }) => {
       const name = `${kind}-${order}`;
       const contexts = await Promise.all(
-        devices.map(() => browser.newContext({ baseURL: 'http://127.0.0.1:8091' })),
+        devices.map(() => browser.newContext({ baseURL: backendAddress() })),
       );
       try {
         for (let i = 0; i < 2; i++)

@@ -96,7 +96,7 @@ pnpm run test:pocketbase  # 9 API-/MCP- und 16 Browser-Integrationstests
 pnpm run test:startup     # Server startet ohne Betriebssystem-Browseraufruf
 ```
 
-PocketBase-Tests verwenden eine frische temporäre Datenbank und Testbenutzer auf Port 8091; sie verändern nicht `pb_data`. Zwei isolierte Browserkontexte simulieren Geräte mit getrenntem Storage und unterschiedlichen Geräte-IDs. Geprüft sind Auth, Owner-Isolation, gesperrte direkte Writes, Idempotenz, List-/Task-Push, Paging, Tombstones, SSE als Pull-Trigger, Offline-Reload, abgelaufener Token und Account-Wechsel. Der Starttest fängt `open`/`xdg-open` ab und prüft, dass kein Aufruf erfolgt.
+PocketBase-Tests verwenden eine frische temporäre Datenbank und Testbenutzer; sie verändern nicht `pb_data`. Das Global-Setup startet das Backend auf einem freien Port und veröffentlicht die Adresse in `TODO_TEST_ADDRESS`; so kann keine parallel laufende Suite aus einem anderen Checkout dieselben Testkonten benutzen. Die Browserkontexte laufen mit `prefers-reduced-motion: reduce`, damit Geometrie-Prüfungen fertige Layouts messen. Zwei isolierte Browserkontexte simulieren Geräte mit getrenntem Storage und unterschiedlichen Geräte-IDs. Geprüft sind Auth, Owner-Isolation, gesperrte direkte Writes, Idempotenz, List-/Task-Push, Paging, Tombstones, SSE als Pull-Trigger, Offline-Reload, abgelaufener Token und Account-Wechsel. Der Starttest fängt `open`/`xdg-open` ab und prüft, dass kein Aufruf erfolgt.
 
 Noch offen: eine tatsächlich installierte Mobile-PWA, Log-/Receipt-Garbage-Collection und ein Restore-/Cursor-Reset-Konzept nach Backend-Datenverlust. Das Log wird im Spike nicht gekürzt.
 

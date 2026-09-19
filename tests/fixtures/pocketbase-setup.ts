@@ -4,7 +4,25 @@ import { join, resolve } from 'node:path';
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
 import { expect } from '@playwright/test';
 import { once } from 'node:events';
+import { createServer } from 'node:net';
+/** A port the operating system just handed out cannot host a foreign suite. */
+async function freePort(): Promise<number> {
+  const probe = createServer();
+  probe.listen(0, '127.0.0.1');
+  await once(probe, 'listening');
+  const { port } = probe.address() as { port: number };
+  await new Promise((done) => probe.close(done));
+  return port;
+}
 export default async function setup() {
+  const address = `http://127.0.0.1:${await freePort()}`;
+  const serving = async () => {
+    try {
+      return (await fetch(`${address}/api/health`, { signal: AbortSignal.timeout(2000) })).ok;
+    } catch {
+      return false;
+    }
+  };
   const temporary = await mkdtemp(join(tmpdir(), 'todo-pocketbase-'));
   const binary = resolve('.tools/todo');
   const names = [
@@ -46,6 +64,7 @@ export default async function setup() {
       child.kill('SIGTERM');
       await exited;
     }
+    delete process.env.TODO_TEST_ADDRESS;
     await rm(temporary, { recursive: true, force: true });
   };
   try {
@@ -65,26 +84,24 @@ export default async function setup() {
       [
         'serve',
         '--dev',
-        '--http=127.0.0.1:8091',
+        `--http=${new URL(address).host}`,
         `--dir=${temporary}`,
         `--publicDir=${resolve('pb_public')}`,
       ],
       {
         stdio: 'inherit',
-        env: { ...process.env, TODO_PUBLIC_URL: 'http://127.0.0.1:8091' },
+        env: { ...process.env, TODO_PUBLIC_URL: address },
       },
     );
     child = server;
     exited = once(server, 'exit');
+    // Workers read the config again in their own process and inherit this value.
+    process.env.TODO_TEST_ADDRESS = address;
     await expect
       .poll(
         async () => {
           if (server.exitCode !== null) throw new Error('Test backend stopped during startup');
-          try {
-            return (await fetch('http://127.0.0.1:8091/api/health')).ok;
-          } catch {
-            return false;
-          }
+          return await serving();
         },
         { timeout: 10000 },
       )

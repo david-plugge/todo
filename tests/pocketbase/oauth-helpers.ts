@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { expect, type APIRequestContext } from '@playwright/test';
-export const resource = 'http://127.0.0.1:8091/api/todo/mcp';
+import { backendAddress } from '../fixtures/backend-address';
+export const resource = `${backendAddress()}/api/todo/mcp`;
 export async function beginOAuth(request: APIRequestContext, scope = 'tasks:read tasks:write') {
   const verifier = randomBytes(32).toString('base64url');
   const challenge = createHash('sha256').update(verifier).digest('base64url');

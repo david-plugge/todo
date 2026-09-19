@@ -1,5 +1,6 @@
 import { triggerSync, logout } from './navigation-helpers';
 import { expect, test, type Page } from '@playwright/test';
+import { backendAddress } from '../fixtures/backend-address';
 async function login(page: Page, name: string) {
   await page.goto('/account');
   await page.getByLabel('E-Mail', { exact: true }).fill(`${name}@example.test`);
@@ -20,8 +21,8 @@ async function synced(page: Page) {
 test('two isolated devices: SSE only triggers pull, tasks/lists and tombstones propagate', async ({
   browser,
 }) => {
-  const a = await browser.newContext({ baseURL: 'http://127.0.0.1:8091' });
-  const b = await browser.newContext({ baseURL: 'http://127.0.0.1:8091' });
+  const a = await browser.newContext({ baseURL: backendAddress() });
+  const b = await browser.newContext({ baseURL: backendAddress() });
   try {
     const first = await a.newPage();
     const second = await b.newPage();
