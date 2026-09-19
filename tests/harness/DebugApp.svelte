@@ -124,7 +124,9 @@
     <p class="min-h-6 text-sm" data-testid="sync-status">{pushing ? 'Push läuft …' : syncStatus}</p>
     <a href={resolve('/')}>Zur normalen Testdatenbank</a>
   {:else}
-    <a href={resolve('/sync-lab')}>Isoliertes Sync-Labor öffnen</a>
+    <!-- This route only exists in the harness build and is absent from product route types. -->
+    <!-- eslint-disable-next-line svelte/no-navigation-without-resolve -->
+    <a href="/sync-lab">Isoliertes Sync-Labor öffnen</a>
   {/if}
   <form
     class="mt-4"
