@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 import { setDate } from './date-picker-helpers';
+import { chooseList } from './list-select-helpers';
 
 async function login(page: Page) {
   await page.goto('/account');
@@ -16,9 +17,8 @@ async function create(
 ) {
   await page.getByLabel('Neuer Task', { exact: true }).fill(title);
   if (options.planned) await setDate(page, 'Geplant am', options.planned);
-  if (options.list)
-    await page.getByLabel('Liste', { exact: true }).selectOption({ label: options.list });
-  else await page.getByLabel('Liste', { exact: true }).selectOption('');
+  if (options.list) await chooseList(page, 'Liste', options.list);
+  else await chooseList(page, 'Liste', 'Ohne Liste');
   await page.getByRole('button', { name: 'Task erstellen', exact: true }).click();
   await expect(page.getByLabel('Neuer Task', { exact: true })).toHaveValue('');
 }

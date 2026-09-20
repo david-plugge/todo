@@ -19,7 +19,7 @@ export type TaskChanges = Partial<
 export type ListChanges = Partial<Pick<TaskList, 'name' | 'deletedAt' | 'rank'>>;
 export type CreateTaskOptions = Pick<
   TaskChanges,
-  'dueDate' | 'plannedDate' | 'recurrenceRule' | 'recurrenceDate' | 'listId'
+  'description' | 'dueDate' | 'plannedDate' | 'recurrenceRule' | 'recurrenceDate' | 'listId'
 >;
 export interface DeleteListOptions {
   /** Tombstone active tasks assigned to the list instead of leaving them unassigned. */

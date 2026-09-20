@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { chooseList } from './list-select-helpers';
 
 async function login(page: Page, name: string) {
   await page.goto('/account');
@@ -14,7 +15,7 @@ test('renames and deletes a list while keeping its tasks', async ({ page }) => {
   await page.getByLabel('Name der neuen Liste', { exact: true }).fill('Projekte');
   await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
   await page.getByLabel('Neuer Task', { exact: true }).fill('Bleibt erhalten');
-  await page.getByLabel('Liste', { exact: true }).selectOption({ label: 'Projekte' });
+  await chooseList(page, 'Liste', 'Projekte');
   await page.getByRole('button', { name: 'Task erstellen', exact: true }).click();
 
   await page.getByLabel('Optionen für Projekte', { exact: true }).click();
@@ -56,7 +57,7 @@ test('deletes active and completed tasks when the list delete option is checked'
   await page.getByLabel('Name der neuen Liste', { exact: true }).press('Enter');
   for (const title of ['Aktiv', 'Erledigt']) {
     await page.getByLabel('Neuer Task', { exact: true }).fill(title);
-    await page.getByLabel('Liste', { exact: true }).selectOption({ label: 'Archiv' });
+    await chooseList(page, 'Liste', 'Archiv');
     await page.getByRole('button', { name: 'Task erstellen', exact: true }).click();
     await expect(page.getByLabel('Neuer Task', { exact: true })).toHaveValue('');
     await expect(page.getByTestId('task-title')).toContainText([title]);

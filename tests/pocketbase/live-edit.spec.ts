@@ -3,6 +3,7 @@ import { setDate } from './date-picker-helpers';
 import { expect, test, type Page } from '@playwright/test';
 import type { Task } from '../../src/lib/domain/models';
 import { backendAddress } from '../fixtures/backend-address';
+import { chooseList } from './list-select-helpers';
 async function login(page: Page, name: string) {
   await page.goto('/account');
   await page.getByLabel('E-Mail', { exact: true }).fill(`${name}@example.test`);
@@ -179,7 +180,7 @@ test('offline autosave: title blur plus checkbox, date changes, list selection a
   await expect.poll(original).toMatchObject({ title: 'Direct edit', completed: true });
   await setDate(page, 'Geplant am bearbeiten', '2026-11-02');
   await setDate(page, 'Fällig am bearbeiten', '2026-11-03');
-  await page.getByLabel('Liste bearbeiten', { exact: true }).selectOption({ label: 'Inbox' });
+  await chooseList(page, 'Liste bearbeiten', 'Inbox');
   await expect.poll(original).toMatchObject({
     plannedDate: '2026-11-02',
     dueDate: '2026-11-03',

@@ -6,6 +6,7 @@ import { stampChanges } from '../../src/lib/domain/versions';
 import type { Task } from '../../src/lib/domain/models';
 import { bootstrapSyncGeneration, syncHeaders } from './sync-api';
 import { backendAddress } from '../fixtures/backend-address';
+import { chooseList } from './list-select-helpers';
 const devices = ['00000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000002'];
 async function login(page: Page, name: string) {
   await page.goto('/account');
@@ -343,7 +344,7 @@ test('mobile layout: create dated task in list, filter and reorder lists', async
   await page.getByLabel('Neuer Task', { exact: true }).click();
   await setDate(page, 'Geplant am', '2026-12-01');
   await setDate(page, 'Fällig am', '2026-12-02');
-  await page.getByLabel('Liste', { exact: true }).selectOption({ label: 'Privat' });
+  await chooseList(page, 'Liste', 'Privat');
   await create(page, 'Termin planen');
   await synced(page);
   await expect(row(page, 'Termin planen').getByLabel('Geplant am bearbeiten')).toHaveAttribute(
@@ -404,7 +405,7 @@ test('mobile layout: create dated task in list, filter and reorder lists', async
   await page.getByRole('button', { name: 'Alle Aufgaben', exact: true }).click();
   await expect(page.getByLabel('Neuer Task', { exact: true })).toBeVisible();
   await page.getByLabel('Neuer Task', { exact: true }).fill('Ohne Termin');
-  await page.getByLabel('Liste', { exact: true }).selectOption('');
+  await chooseList(page, 'Liste', 'Ohne Liste');
   await create(page, 'Ohne Termin');
   const dated = row(page, 'Termin planen');
   const plain = row(page, 'Ohne Termin');

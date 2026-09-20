@@ -1,12 +1,11 @@
 <script lang="ts">
-  import { Hash, Repeat2 } from '@lucide/svelte';
-  import { Collapsible, Popover } from 'bits-ui';
-  import { Drawer } from 'vaul-svelte';
-  import { MediaQuery } from 'svelte/reactivity';
+  import { Hash } from '@lucide/svelte';
+  import { Collapsible } from 'bits-ui';
   import type { TaskChanges } from '$lib/domain/commands';
   import type { Task, TaskList } from '$lib/domain/models';
   import { isBlankNote, renderNote } from '$lib/domain/markdown';
-  import RecurrenceEditor from './RecurrenceEditor.svelte';
+  import ListSelect from './ListSelect.svelte';
+  import RecurrenceField from './RecurrenceField.svelte';
   import TaskDatePicker from './TaskDatePicker.svelte';
   let {
     task,
@@ -76,10 +75,6 @@
       : {};
     void save({ dueDate, ...recurrenceChanges });
   }
-  const wide = new MediaQuery('(min-width: 36.25rem)');
-  const recurrenceTriggerClass = $derived(
-    `relative inline-flex min-h-6 cursor-pointer items-center justify-center gap-1.25 rounded-md border-0 bg-transparent px-1 py-0.5 text-[11px] leading-5 whitespace-nowrap text-muted hover:bg-selected disabled:cursor-default disabled:opacity-40 max-mobile:after:absolute max-mobile:after:inset-x-0 max-mobile:after:-inset-y-2.5 max-mobile:after:content-[''] ${task.recurrenceRule ? 'text-accent' : ''}`,
-  );
 </script>
 
 <div
@@ -118,85 +113,15 @@
     />
   {/if}
   {#if expanded || task.recurrenceRule}
-    {#snippet recurrenceTrigger()}
-      <Repeat2 size={15} aria-hidden="true" />
-      <span>{task.recurrenceRule ? 'Wiederholt sich' : 'Wiederholen'}</span>
-    {/snippet}
-    {#if wide.current}
-      <Popover.Root bind:open={recurrenceOpen}>
-        <Popover.Trigger
-          type="button"
-          class={recurrenceTriggerClass}
-          aria-label={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
-          title={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
-          disabled={busy}
-        >
-          {@render recurrenceTrigger()}
-        </Popover.Trigger>
-        <Popover.Portal>
-          <Popover.Content
-            class="z-10000 max-h-(--bits-popover-content-available-height) w-[min(380px,calc(100vw-24px))] overflow-y-auto rounded-xl border border-border bg-surface p-3 text-[13px] text-text shadow-popover"
-            data-testid="recurrence-popover"
-            aria-label="Wiederholung"
-            align="start"
-            sideOffset={8}
-            collisionPadding={12}
-            interactOutsideBehavior={busy ? 'ignore' : 'close'}
-            escapeKeydownBehavior={busy ? 'ignore' : 'close'}
-          >
-            <RecurrenceEditor
-              recurrenceRule={task.recurrenceRule}
-              recurrenceDate={task.recurrenceDate}
-              startDate={task.dueDate ?? task.plannedDate}
-              disabled={busy}
-              {save}
-              close={() => {
-                recurrenceOpen = false;
-              }}
-            />
-          </Popover.Content>
-        </Popover.Portal>
-      </Popover.Root>
-    {:else}
-      <!-- A save in flight must not be interrupted by a swipe or a tap outside. -->
-      <Drawer.Root bind:open={recurrenceOpen} dismissible={!busy}>
-        <Drawer.Trigger
-          type="button"
-          class={recurrenceTriggerClass}
-          aria-label={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
-          title={task.recurrenceRule ? 'Wiederholung bearbeiten' : 'Wiederholung hinzufügen'}
-          disabled={busy}
-        >
-          {@render recurrenceTrigger()}
-        </Drawer.Trigger>
-        <Drawer.Portal>
-          <Drawer.Overlay class="fixed inset-0 z-10000 bg-overlay" />
-          <Drawer.Content
-            class="fixed inset-x-0 bottom-0 z-10001 flex max-h-[90dvh] flex-col rounded-t-[20px] bg-surface text-[13px] text-text shadow-drawer outline-none"
-            data-testid="recurrence-popover"
-            aria-label="Wiederholung"
-          >
-            <Drawer.Handle
-              class="mx-auto mt-2.5 mb-1 h-1 w-10 shrink-0 rounded-full bg-border-strong"
-            />
-            <div
-              class="min-h-0 overflow-y-auto px-3 pt-1 pb-[calc(12px+env(safe-area-inset-bottom))]"
-            >
-              <RecurrenceEditor
-                recurrenceRule={task.recurrenceRule}
-                recurrenceDate={task.recurrenceDate}
-                startDate={task.dueDate ?? task.plannedDate}
-                disabled={busy}
-                {save}
-                close={() => {
-                  recurrenceOpen = false;
-                }}
-              />
-            </div>
-          </Drawer.Content>
-        </Drawer.Portal>
-      </Drawer.Root>
-    {/if}
+    <RecurrenceField
+      bind:open={recurrenceOpen}
+      compact={!expanded}
+      recurrenceRule={task.recurrenceRule}
+      recurrenceDate={task.recurrenceDate}
+      startDate={task.dueDate ?? task.plannedDate}
+      {busy}
+      {save}
+    />
   {/if}
   {#if !expanded && task.listId && showList}
     <span
@@ -245,7 +170,7 @@
       </div>
     {:else}
       <button
-        class="-ml-1 cursor-pointer rounded-md border-0 bg-transparent px-1 py-0.5 text-[11px] text-muted hover:bg-selected"
+        class="-mx-1 flex w-[calc(100%+0.5rem)] cursor-pointer items-center rounded-md border-0 bg-transparent px-1 py-0.5 text-left text-[11px] text-muted hover:bg-selected max-mobile:min-h-11 max-mobile:text-xs"
         type="button"
         disabled={busy}
         onclick={() => startNote()}>Beschreibung hinzufügen</button
@@ -256,21 +181,17 @@
     class={`relative mt-1 flex flex-nowrap items-center gap-2 border-t-0 pt-2 before:absolute before:top-0 before:-right-2 before:border-t before:border-border before:content-[''] max-mobile:gap-1 ${expanded ? 'before:left-[-41px] max-mobile:before:-left-11' : 'before:left-[-33px] max-mobile:before:-left-9'}`}
     data-testid="task-editor-footer"
   >
-    <label class="flex min-w-0 flex-1 items-center gap-0.5 text-muted" title="Liste"
-      ><Hash size={14} aria-hidden="true" /><select
-        class="w-full max-w-45 min-w-0 rounded-md border-0 bg-transparent px-0.5 py-1.25 text-xs text-ellipsis text-text"
-        aria-label="Liste bearbeiten"
-        value={task.listId ?? ''}
-        onchange={(event) => {
-          const value = event.currentTarget.value || null;
-          if (value !== (task.listId ?? null)) void save({ listId: value });
+    <div class="-ml-1.5 flex min-w-0 flex-1 items-center">
+      <ListSelect
+        label="Liste bearbeiten"
+        {lists}
+        value={task.listId ?? null}
+        disabled={busy}
+        onchange={(listId) => {
+          if (listId !== (task.listId ?? null)) void save({ listId });
         }}
-      >
-        <option value="">Ohne Liste</option>{#each lists as list (list.id)}<option value={list.id}
-            >{list.name}</option
-          >{/each}
-      </select></label
-    >
+      />
+    </div>
     <div class="flex flex-none gap-1.5 max-mobile:gap-1" data-testid="task-footer-actions">
       <button
         class="min-h-9 cursor-pointer rounded-md border border-transparent bg-transparent px-2.5 py-1.75 text-xs whitespace-nowrap text-danger hover:bg-danger-soft disabled:cursor-default disabled:opacity-40 max-mobile:min-h-10 max-mobile:p-2"

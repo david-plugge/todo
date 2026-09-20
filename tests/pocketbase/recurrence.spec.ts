@@ -242,3 +242,57 @@ test('recurrence drafts apply atomically and completing creates the next open oc
       .filter({ has: page.getByText(recurrenceTitle, { exact: true }) }),
   ).toHaveCount(1);
 });
+
+test('the composer creates a task with description and recurrence in one step', async ({
+  page,
+}) => {
+  const title = `Composer Wiederholung ${crypto.randomUUID()}`;
+  await login(page);
+  await page.getByRole('button', { name: /Alle Aufgaben/ }).click();
+  await page.getByLabel('Neuer Task', { exact: true }).fill(title);
+
+  const composer = page.getByTestId('task-composer');
+  await composer.getByRole('button', { name: 'Beschreibung hinzufügen', exact: true }).click();
+  await composer
+    .getByLabel('Beschreibung bearbeiten', { exact: true })
+    .fill('Agenda **vorbereiten**');
+  await composer.getByLabel('Beschreibung bearbeiten', { exact: true }).blur();
+  await expect(composer.getByTestId('task-composer-note').getByRole('strong')).toHaveText(
+    'vorbereiten',
+  );
+
+  await setDate(page, 'Geplant am', '2026-09-15');
+  await composer.getByRole('button', { name: 'Wiederholung hinzufügen', exact: true }).click();
+  const recurrencePopover = page.getByTestId('recurrence-popover');
+  await expect(recurrencePopover).toBeVisible();
+  await recurrencePopover.getByRole('spinbutton', { name: 'Alle', exact: true }).fill('2');
+  await recurrencePopover.getByRole('button', { name: 'Übernehmen', exact: true }).click();
+  await expect(recurrencePopover).toBeHidden();
+  await expect(
+    composer.getByRole('button', { name: 'Wiederholung bearbeiten', exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole('button', { name: 'Task erstellen', exact: true }).click();
+  const created = page
+    .getByTestId('account-task')
+    .filter({ has: page.getByTestId('task-title').filter({ hasText: title }) });
+  await expect(created).toHaveCount(1);
+  const taskId = await created.getAttribute('data-sort-id');
+  await expect
+    .poll(() => storedTask(page, taskId!))
+    .toMatchObject({
+      description: 'Agenda **vorbereiten**',
+      plannedDate: '2026-09-15',
+      recurrenceRule: 'FREQ=WEEKLY;INTERVAL=2;BYDAY=TU',
+      recurrenceDate: '2026-09-15',
+    });
+
+  // The next draft starts empty again.
+  await page.getByLabel('Neuer Task', { exact: true }).click();
+  await expect(
+    composer.getByRole('button', { name: 'Beschreibung hinzufügen', exact: true }),
+  ).toBeVisible();
+  await expect(
+    composer.getByRole('button', { name: 'Wiederholung hinzufügen', exact: true }),
+  ).toBeVisible();
+});
