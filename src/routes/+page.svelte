@@ -2,15 +2,24 @@
   import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { AccountSession, type Account } from '$lib/pocketbase/session';
+  import { loadSignInMethod, startOIDCSignIn, type SignInMethod } from '$lib/pocketbase/sign-in';
   import AccountTodo from '$lib/components/AccountTodo.svelte';
   const session = new AccountSession();
   let account = $state<Account | null>(null);
   let sessionReady = $state(!session.hasCachedIdentity());
+  let signInMethod = $state<SignInMethod | null>(null);
   let email = $state(''),
     password = $state(''),
     error = $state(''),
     busy = $state(false);
   onMount(() => {
+    void loadSignInMethod()
+      .then((method) => {
+        signInMethod = method;
+      })
+      .catch(() => {
+        error = 'Anmeldung derzeit nicht erreichbar. Verbindung prüfen und Seite neu laden.';
+      });
     session.start(
       (value) => {
         account = value;
@@ -32,6 +41,16 @@
     } catch {
       error = 'Anmeldung fehlgeschlagen. Zugangsdaten und Verbindung prüfen.';
     } finally {
+      busy = false;
+    }
+  }
+  async function signInWithOIDC() {
+    busy = true;
+    error = '';
+    try {
+      await startOIDCSignIn(location.pathname + location.search);
+    } catch {
+      error = 'Anmeldung fehlgeschlagen. Verbindung prüfen.';
       busy = false;
     }
   }
@@ -60,34 +79,41 @@
       <p class="mb-[30px] text-sm leading-[1.7] text-muted">
         Aufgaben sammeln, in Ruhe planen und Schritt für Schritt erledigen.
       </p>
-      <form
-        class="grid gap-[17px]"
-        onsubmit={(event) => {
-          event.preventDefault();
-          void login();
-        }}
-      >
-        <label class="grid gap-2 text-xs text-muted"
-          >E-Mail<input
-            class="w-full rounded-lg border border-border bg-surface p-3 text-text"
-            type="email"
-            autocomplete="username"
-            bind:value={email}
-            required
-          /></label
-        ><label class="grid gap-2 text-xs text-muted"
-          >Passwort<input
-            class="w-full rounded-lg border border-border bg-surface p-3 text-text"
-            type="password"
-            autocomplete="current-password"
-            bind:value={password}
-            required
-          /></label
-        ><button
-          class="mt-1 cursor-pointer rounded-[7px] border-0 bg-accent p-[13px] text-on-accent hover:bg-accent-hover disabled:cursor-default disabled:opacity-40"
-          disabled={busy}>{busy ? 'Anmelden …' : 'Anmelden'}</button
+      {#if signInMethod?.kind === 'oidc'}
+        <button
+          class="w-full cursor-pointer rounded-[7px] border-0 bg-accent p-[13px] text-on-accent hover:bg-accent-hover disabled:cursor-default disabled:opacity-40"
+          disabled={busy}
+          onclick={signInWithOIDC}
+          >{busy ? 'Weiterleitung …' : `Mit ${signInMethod.displayName} anmelden`}</button
         >
-      </form>
+      {:else if signInMethod?.kind === 'password'}<form
+          class="grid gap-[17px]"
+          onsubmit={(event) => {
+            event.preventDefault();
+            void login();
+          }}
+        >
+          <label class="grid gap-2 text-xs text-muted"
+            >E-Mail<input
+              class="w-full rounded-lg border border-border bg-surface p-3 text-text"
+              type="email"
+              autocomplete="username"
+              bind:value={email}
+              required
+            /></label
+          ><label class="grid gap-2 text-xs text-muted"
+            >Passwort<input
+              class="w-full rounded-lg border border-border bg-surface p-3 text-text"
+              type="password"
+              autocomplete="current-password"
+              bind:value={password}
+              required
+            /></label
+          ><button
+            class="mt-1 cursor-pointer rounded-[7px] border-0 bg-accent p-[13px] text-on-accent hover:bg-accent-hover disabled:cursor-default disabled:opacity-40"
+            disabled={busy}>{busy ? 'Anmelden …' : 'Anmelden'}</button
+          >
+        </form>{/if}
       {#if error}<p role="alert" class="text-[13px] text-danger">{error}</p>{/if}
       <p class="mt-[25px] text-[11px] leading-[1.8] text-muted">
         Für die erste Anmeldung brauchst du eine Verbindung.<br />Danach bleiben deine Aufgaben auch

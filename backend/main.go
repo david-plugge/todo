@@ -266,6 +266,9 @@ func validateProductionConfig() error {
 	if _, err := parseTrustedProxyConfig(); err != nil {
 		return err
 	}
+	if _, err := parseOIDCConfig(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -311,6 +314,13 @@ func main() {
 			return err
 		}
 		configureTrustedProxy(e, proxy)
+		oidc, err := parseOIDCConfig()
+		if err != nil {
+			return err
+		}
+		if err := applySignInConfig(e.App, oidc); err != nil {
+			return err
+		}
 		configureRuntimeRateLimits(e.App)
 		registerTodo(e)
 		if err := registerOAuth(e); err != nil {

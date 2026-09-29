@@ -1854,3 +1854,207 @@ func TestMCPDescriptionRoundTripAndSearch(t *testing.T) {
 		t.Fatal("expected an over-long description to be rejected")
 	}
 }
+
+func setOIDCTestEnv(t *testing.T, endpoint string) {
+	t.Helper()
+	secretFile := filepath.Join(t.TempDir(), "client_secret")
+	if err := os.WriteFile(secretFile, []byte("client-secret\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv(oidcAuthURLEnv, endpoint+"/authorize")
+	t.Setenv(oidcTokenURLEnv, endpoint+"/api/oidc/token")
+	t.Setenv(oidcUserInfoURLEnv, endpoint+"/api/oidc/userinfo")
+	t.Setenv(oidcClientIDEnv, "todo")
+	t.Setenv(oidcClientSecretFileEnv, secretFile)
+	t.Setenv(oidcDisplayNameEnv, "Pocket ID")
+}
+
+func TestOIDCConfigValidation(t *testing.T) {
+	for _, name := range append(oidcRequiredEnvs, oidcDisplayNameEnv) {
+		t.Setenv(name, "")
+	}
+	if config, err := parseOIDCConfig(); err != nil || config != nil {
+		t.Fatalf("unconfigured OIDC must keep password sign-in: config=%v err=%v", config, err)
+	}
+
+	setOIDCTestEnv(t, "https://id.example.com")
+	config, err := parseOIDCConfig()
+	if err != nil {
+		t.Fatalf("expected valid OIDC config: %v", err)
+	}
+	if config.clientSecret != "client-secret" || config.displayName != "Pocket ID" {
+		t.Fatalf("unexpected OIDC config: %+v", config)
+	}
+
+	t.Setenv(oidcDisplayNameEnv, "")
+	if config, _ := parseOIDCConfig(); config.displayName != oidcDefaultDisplayName {
+		t.Fatalf("expected default display name, got %q", config.displayName)
+	}
+
+	invalid := map[string]func(t *testing.T){
+		"partial":        func(t *testing.T) { t.Setenv(oidcClientIDEnv, "") },
+		"plain_http":     func(t *testing.T) { t.Setenv(oidcTokenURLEnv, "http://id.example.com/api/oidc/token") },
+		"relative":       func(t *testing.T) { t.Setenv(oidcAuthURLEnv, "/authorize") },
+		"missing_secret": func(t *testing.T) { t.Setenv(oidcClientSecretFileEnv, filepath.Join(t.TempDir(), "missing")) },
+		"empty_secret": func(t *testing.T) {
+			empty := filepath.Join(t.TempDir(), "empty")
+			if err := os.WriteFile(empty, []byte("\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			t.Setenv(oidcClientSecretFileEnv, empty)
+		},
+	}
+	for name, mutate := range invalid {
+		t.Run(name, func(t *testing.T) {
+			setOIDCTestEnv(t, "https://id.example.com")
+			mutate(t)
+			if _, err := parseOIDCConfig(); err == nil {
+				t.Fatal("expected invalid OIDC config")
+			}
+		})
+	}
+
+	t.Run("production_check", func(t *testing.T) {
+		t.Setenv(trustedProxyHeaderEnv, "")
+		t.Setenv(trustedProxyCIDRsEnv, "")
+		t.Setenv("TODO_PUBLIC_URL", "https://tasks.example.com")
+		t.Setenv("PB_ENCRYPTION_KEY", "0123456789abcdef0123456789abcdef")
+		setOIDCTestEnv(t, "https://id.example.com")
+		t.Setenv(oidcClientIDEnv, "")
+		if err := validateProductionConfig(); err == nil {
+			t.Fatal("production check accepted a partial OIDC config")
+		}
+	})
+}
+
+func TestSignInConfigIsAuthoritative(t *testing.T) {
+	app := openTestApp(t, t.TempDir())
+	setOIDCTestEnv(t, "https://id.example.com")
+	config, err := parseOIDCConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := applySignInConfig(app, config); err != nil {
+		t.Fatal(err)
+	}
+	users, err := app.FindCollectionByNameOrId("todo_users")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if users.PasswordAuth.Enabled || !users.OAuth2.Enabled || len(users.OAuth2.Providers) != 1 {
+		t.Fatalf("OIDC mode must only allow the configured provider: %+v", users.OAuth2)
+	}
+	provider := users.OAuth2.Providers[0]
+	if provider.Name != "oidc" || provider.PKCE == nil || !*provider.PKCE || provider.ClientSecret != "client-secret" {
+		t.Fatalf("unexpected provider config: %+v", provider)
+	}
+	if users.CreateRule == nil || *users.CreateRule != oidcCreateRule {
+		t.Fatalf("unexpected create rule: %v", users.CreateRule)
+	}
+
+	if err := applySignInConfig(app, nil); err != nil {
+		t.Fatal(err)
+	}
+	users, err = app.FindCollectionByNameOrId("todo_users")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !users.PasswordAuth.Enabled || users.OAuth2.Enabled || len(users.OAuth2.Providers) != 0 ||
+		users.CreateRule != nil {
+		t.Fatalf("unconfigured OIDC must restore password-only sign-in: %+v", users)
+	}
+}
+
+func TestOIDCSignInLinksExistingUserAndOnlyCreatesThroughOIDC(t *testing.T) {
+	email := "owner@example.test"
+	idp := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/api/oidc/token":
+			if err := r.ParseForm(); err != nil || r.Form.Get("code_verifier") == "" {
+				http.Error(w, `{"error":"invalid_request"}`, http.StatusBadRequest)
+				return
+			}
+			_, _ = w.Write(
+				[]byte(`{"access_token":"access-` + r.Form.Get("code") + `","token_type":"Bearer","expires_in":3600}`),
+			)
+		case "/api/oidc/userinfo":
+			subject := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer access-")
+			_ = json.NewEncoder(w).
+				Encode(Object{"sub": subject, "email": subject + "@example.test", "email_verified": true})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer idp.Close()
+
+	app := openTestApp(t, t.TempDir())
+	users, err := app.FindCollectionByNameOrId("todo_users")
+	if err != nil {
+		t.Fatal(err)
+	}
+	existing := core.NewRecord(users)
+	existing.SetEmail(email)
+	existing.SetPassword("existing-password-123")
+	if err := app.Save(existing); err != nil {
+		t.Fatal(err)
+	}
+
+	setOIDCTestEnv(t, idp.URL)
+	config, err := parseOIDCConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := applySignInConfig(app, config); err != nil {
+		t.Fatal(err)
+	}
+	router, err := apis.NewRouter(app)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mux, err := router.BuildMux()
+	if err != nil {
+		t.Fatal(err)
+	}
+	post := func(path string, body Object) (int, Object) {
+		t.Helper()
+		payload, _ := json.Marshal(body)
+		request := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(payload))
+		request.Header.Set("Content-Type", "application/json")
+		response := httptest.NewRecorder()
+		mux.ServeHTTP(response, request)
+		result := Object{}
+		_ = json.Unmarshal(response.Body.Bytes(), &result)
+		return response.Code, result
+	}
+	signIn := func(subject string) (int, Object) {
+		return post("/api/collections/todo_users/auth-with-oauth2", Object{
+			"provider":     "oidc",
+			"code":         subject,
+			"codeVerifier": "verifier",
+			"redirectURL":  "https://tasks.example.com/auth/callback",
+		})
+	}
+
+	status, result := signIn("owner")
+	record, _ := result["record"].(map[string]any)
+	if status != http.StatusOK || record["id"] != existing.Id {
+		t.Fatalf("OIDC sign-in did not link the existing account: status=%d body=%v", status, result)
+	}
+	status, result = signIn("newcomer")
+	record, _ = result["record"].(map[string]any)
+	if status != http.StatusOK || record["email"] != "newcomer@example.test" {
+		t.Fatalf("OIDC sign-in did not create the new account: status=%d body=%v", status, result)
+	}
+
+	if status, _ := post("/api/collections/todo_users/auth-with-password", Object{
+		"identity": email, "password": "existing-password-123",
+	}); status < 400 {
+		t.Fatalf("password sign-in stayed available in OIDC mode: status=%d", status)
+	}
+	if status, _ := post("/api/collections/todo_users/records", Object{
+		"email": "intruder@example.test", "password": "intruder-password-1", "passwordConfirm": "intruder-password-1",
+	}); status < 400 {
+		t.Fatalf("direct user creation stayed open in OIDC mode: status=%d", status)
+	}
+}
