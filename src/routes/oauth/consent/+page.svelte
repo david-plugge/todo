@@ -2,8 +2,10 @@
   import { onMount } from 'svelte';
   import { resolve } from '$app/paths';
   import PocketBase, { LocalAuthStore } from 'pocketbase';
+  import { loadSignInMethod, startOIDCSignIn, type SignInMethod } from '$lib/pocketbase/sign-in';
   const pb = new PocketBase(location.origin, new LocalAuthStore('todo-auth-v1'));
   let details = $state<{ clientName: string; redirectOrigin: string; scope: string } | null>(null);
+  let signInMethod = $state<SignInMethod | null>(null);
   let email = $state(''),
     password = $state(''),
     signedIn = $state(pb.authStore.isValid);
@@ -11,6 +13,13 @@
     error = $state('');
   const request = new URL(location.href).searchParams.get('request') ?? '';
   onMount(() => {
+    void loadSignInMethod()
+      .then((method) => {
+        signInMethod = method;
+      })
+      .catch(() => {
+        error = 'Anmeldung derzeit nicht erreichbar. Verbindung prüfen und Seite neu laden.';
+      });
     void pb
       .send('/api/oauth/consent', { query: { request } })
       .then((value) => {
@@ -31,6 +40,17 @@
     } catch {
       error = 'Anmeldung fehlgeschlagen. Zugangsdaten und Verbindung prüfen.';
     } finally {
+      busy = false;
+    }
+  }
+  async function signInWithOIDC() {
+    busy = true;
+    error = '';
+    try {
+      // The pending consent request survives the redirect and is resumed afterwards.
+      await startOIDCSignIn(location.pathname + location.search);
+    } catch {
+      error = 'Anmeldung fehlgeschlagen. Verbindung prüfen.';
       busy = false;
     }
   }
@@ -88,7 +108,13 @@
           onclick={() => decide(true)}>Zugriff erlauben</button
         >
       </div>
-    {:else}
+    {:else if signInMethod?.kind === 'oidc'}
+      <button
+        class="mt-6 w-full cursor-pointer rounded-lg border border-border bg-accent p-3 text-on-accent disabled:opacity-50"
+        disabled={busy}
+        onclick={signInWithOIDC}>Mit {signInMethod.displayName} anmelden</button
+      >
+    {:else if signInMethod?.kind === 'password'}
       <form
         class="mt-6 grid gap-[18px]"
         onsubmit={(event) => {

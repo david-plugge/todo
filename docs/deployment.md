@@ -66,6 +66,27 @@ TODO_USER_PASSWORD='...' docker compose run --rm \
 
 Superuser werden entsprechend mit dem PocketBase-Befehl `superuser create` angelegt. Für dauerhafte Automatisierung müssen Passwörter aus dem Secret Store der Plattform kommen, nicht aus Compose-Dateien oder Shell-History.
 
+## Anmeldung über OIDC
+
+Ohne OIDC-Konfiguration melden sich App-Benutzer mit E-Mail und Passwort an. Sind die folgenden Variablen gesetzt, ist ausschließlich die Anmeldung über den OIDC-Provider möglich:
+
+| Variable                       | Inhalt                                                                     |
+| ------------------------------ | -------------------------------------------------------------------------- |
+| `TODO_OIDC_AUTH_URL`           | Authorization-Endpunkt, zum Beispiel `https://id.example.com/authorize`    |
+| `TODO_OIDC_TOKEN_URL`          | Token-Endpunkt, zum Beispiel `https://id.example.com/api/oidc/token`       |
+| `TODO_OIDC_USERINFO_URL`       | Userinfo-Endpunkt, zum Beispiel `https://id.example.com/api/oidc/userinfo` |
+| `TODO_OIDC_CLIENT_ID`          | Client-ID                                                                  |
+| `TODO_OIDC_CLIENT_SECRET_FILE` | Pfad zu einer Datei mit dem Client-Secret, etwa ein Docker Secret          |
+| `TODO_OIDC_DISPLAY_NAME`       | optional; Name auf dem Anmelde-Button, Standard `OIDC`                     |
+
+Die fünf Pflichtvariablen werden nur gemeinsam akzeptiert; eine unvollständige Konfiguration lässt `production-check` scheitern. Endpunkte müssen HTTPS verwenden, HTTP ist nur für `localhost` und Loopback erlaubt.
+
+Beim Start setzt das Backend die Anmeldemethoden von `todo_users` verbindlich aus der Umgebung: Passwort-Anmeldung aus, genau ein OIDC-Provider mit PKCE, neue Benutzer nur über eine OIDC-Anmeldung. Änderungen im Dashboard werden beim nächsten Start überschrieben. Ohne OIDC-Variablen wird wieder ausschließlich die Passwort-Anmeldung aktiviert.
+
+Beim Provider wird als Callback-URL `${TODO_PUBLIC_URL}/auth/callback` eingetragen und PKCE aktiviert. Wer sich anmelden darf, regelt der Provider. Ein bestehendes Konto wird beim ersten Login über die E-Mail-Adresse verknüpft; das gelingt nur, wenn der Provider die Adresse als verifiziert meldet (`email_verified`).
+
+Das Client-Secret liegt anschließend in der Collection-Konfiguration in `pb_data` und damit auch in Backups.
+
 ## Reverse Proxy
 
 TLS sollte am vorgeschalteten Proxy enden. Dieser muss den ursprünglichen `Host` unverändert weitergeben; lange Read-Timeouts sind für PocketBase-Realtime/SSE erforderlich. Der Containerport muss ausschließlich vom Proxy erreichbar bleiben, zum Beispiel über Loopback oder ein internes Container-Netz.
