@@ -17,6 +17,7 @@
   import WorkspaceSidebar from './WorkspaceSidebar.svelte';
   import { compareRank } from '$lib/ranking/rank';
   import { today } from '$lib/domain/dates';
+  import { needsPlanning, belongsToMyDay, isPlannedAhead } from '$lib/domain/planning';
   let { account, logout }: { account: Account; logout: () => void } = $props();
   let mobile = $state(false);
   let drawer = $state(false);
@@ -77,7 +78,9 @@
     });
   }
 
-  const contextualView = $derived(view === 'all' || !['today', 'planned', 'done'].includes(view));
+  const contextualView = $derived(
+    view === 'all' || !['today', 'planned', 'done', 'planning'].includes(view),
+  );
   const openTasks = $derived(
     all.filter(
       (task) =>
@@ -85,12 +88,14 @@
         (view === 'all'
           ? true
           : view === 'today'
-            ? task.plannedDate === day
+            ? belongsToMyDay(task, day)
             : view === 'planned'
-              ? !!task.plannedDate
-              : view === 'done'
-                ? false
-                : task.listId === view),
+              ? isPlannedAhead(task, day)
+              : view === 'planning'
+                ? needsPlanning(task)
+                : view === 'done'
+                  ? false
+                  : task.listId === view),
     ),
   );
   const completedTasks = $derived(
@@ -107,25 +112,31 @@
         ? 'Mein Tag'
         : view === 'planned'
           ? 'Geplant'
-          : view === 'done'
-            ? 'Erledigt'
-            : (orderedLists.find((list) => list.id === view)?.name ?? 'Liste'),
+          : view === 'planning'
+            ? 'Zu planen'
+            : view === 'done'
+              ? 'Erledigt'
+              : (orderedLists.find((list) => list.id === view)?.name ?? 'Liste'),
   );
   const emptyHeading = $derived(
     view === 'done'
       ? 'Hier sammeln sich deine Erfolge.'
-      : contextualView && completedTasks.length > 0
-        ? 'Keine offenen Aufgaben.'
-        : 'Ein frischer Anfang.',
+      : view === 'planning'
+        ? 'Alles eingeplant.'
+        : contextualView && completedTasks.length > 0
+          ? 'Keine offenen Aufgaben.'
+          : 'Ein frischer Anfang.',
   );
   const emptyDescription = $derived(
     view === 'done'
       ? 'Hier findest du erledigte Aufgaben.'
-      : contextualView && completedTasks.length > 0
-        ? 'Erledigte Aufgaben findest du weiter unten.'
-        : view === 'all'
-          ? 'Schreib deine erste Aufgabe auf. Den Rest kannst du später planen.'
-          : 'Für diese Ansicht gibt es noch keine Aufgaben.',
+      : view === 'planning'
+        ? 'Alle offenen Aufgaben haben ein geplantes Datum und eine Deadline.'
+        : contextualView && completedTasks.length > 0
+          ? 'Erledigte Aufgaben findest du weiter unten.'
+          : view === 'all'
+            ? 'Schreib deine erste Aufgabe auf. Den Rest kannst du später planen.'
+            : 'Für diese Ansicht gibt es noch keine Aufgaben.',
   );
   onMount(() => {
     const media = matchMedia('(max-width: 580px)');
@@ -298,6 +309,12 @@
         </h1>
       </div>
     </div>
+    {#if view === 'planning'}
+      <p class="mb-4 text-xs leading-relaxed text-muted">
+        Ergänze „Geplant am“ und „Fällig am“. Vollständig eingeplante Aufgaben verschwinden hier —
+        unabhängig von ihrer Liste.
+      </p>
+    {/if}
     {#if error}<p role="alert" class="rounded-lg bg-danger-soft p-3 text-[13px] text-danger">
         {error}
       </p>{/if}

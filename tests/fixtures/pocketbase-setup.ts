@@ -48,6 +48,7 @@ export default async function setup() {
     'list-actions-mobile',
     'list-actions-inline',
     'task-groups',
+    'planning',
     'live-edit',
     'task-collapsible',
     'recurrence',

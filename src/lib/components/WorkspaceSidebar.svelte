@@ -3,6 +3,7 @@
   import { ListTodo, Sun, CalendarDays, Check, Plus, UserRound } from '@lucide/svelte';
   import { resolve } from '$app/paths';
   import type { Task, TaskList } from '$lib/domain/models';
+  import { needsPlanning, belongsToMyDay, isPlannedAhead } from '$lib/domain/planning';
   import SortableRows from './SortableRows.svelte';
   import WorkspaceListRow from './WorkspaceListRow.svelte';
   import type { DragSession } from '$lib/ui/drag';
@@ -51,7 +52,7 @@
   let selectedList = $state<TaskList | null>(null);
   let dialogError = $state('');
   let deleteTasks = $state(false);
-  const plannedCount = $derived(all.filter((task) => !!task.plannedDate && !task.completed).length);
+  const plannedCount = $derived(all.filter((task) => isPlannedAhead(task, day)).length);
   const completedCount = $derived(all.filter((task) => task.completed).length);
   function openCreateDialog() {
     listName = '';
@@ -100,6 +101,22 @@
   <nav class="grid gap-0.5" aria-label="Ansichten">
     <button
       class="relative flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-hover aria-[current=page]:font-semibold aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-1.5 aria-[current=page]:before:-left-1 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-accent aria-[current=page]:before:content-[''] max-mobile:min-h-11"
+      class:bg-selected={!settings && view === 'planning'}
+      class:text-accent={!settings && view === 'planning'}
+      aria-current={!settings && view === 'planning' ? 'page' : undefined}
+      onclick={() => {
+        view = 'planning';
+      }}
+      ><span class="flex min-w-0 flex-1 items-center gap-2.5"
+        ><ListTodo class="shrink-0" size={18} aria-hidden="true" /><span class="truncate"
+          >Zu planen</span
+        ></span
+      ><span class="shrink-0 text-[11px] text-muted tabular-nums"
+        >{all.filter(needsPlanning).length}</span
+      ></button
+    >
+    <button
+      class="relative flex min-h-9 w-full cursor-pointer items-center justify-between gap-2.25 rounded-md border-0 bg-transparent px-2.5 py-2.25 text-left text-[13px] text-text hover:bg-hover aria-[current=page]:font-semibold aria-[current=page]:before:absolute aria-[current=page]:before:inset-y-1.5 aria-[current=page]:before:-left-1 aria-[current=page]:before:w-[3px] aria-[current=page]:before:rounded-full aria-[current=page]:before:bg-accent aria-[current=page]:before:content-[''] max-mobile:min-h-11"
       class:bg-selected={!settings && view === 'today'}
       class:text-accent={!settings && view === 'today'}
       aria-current={!settings && view === 'today' ? 'page' : undefined}
@@ -110,7 +127,7 @@
         ><Sun class="shrink-0" size={18} aria-hidden="true" /><span class="truncate">Mein Tag</span
         ></span
       ><span class="shrink-0 text-[11px] text-muted tabular-nums"
-        >{all.filter((t) => t.plannedDate === day && !t.completed).length}</span
+        >{all.filter((task) => belongsToMyDay(task, day)).length}</span
       ></button
     >
     <button

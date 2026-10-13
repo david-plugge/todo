@@ -6,6 +6,7 @@
   import type { TaskList } from '$lib/domain/models';
   import type { CreateTaskOptions, TaskChanges } from '$lib/domain/commands';
   import { isBlankNote, renderNote } from '$lib/domain/markdown';
+  import { isPlannedAfterDeadline } from '$lib/domain/planning';
   import {
     anchorDraftRecurrence,
     canSubmitDraft,
@@ -211,6 +212,11 @@
       save={saveRecurrence}
     />
   </div>
+  {#if expanded && isPlannedAfterDeadline({ plannedDate, dueDate: due })}
+    <p class="mx-4 mt-2 mb-0 text-xs text-danger" role="status" data-testid="planning-warning">
+      Geplant am liegt nach Fällig am. Plane die Aufgabe spätestens zur Deadline ein.
+    </p>
+  {/if}
   <div
     class={`${expanded ? 'flex' : 'hidden'} flex-nowrap items-center gap-2 px-4 pt-2 pb-3 max-mobile:gap-1`}
     data-testid="task-composer-footer"

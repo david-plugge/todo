@@ -411,12 +411,21 @@ test('mobile layout: create dated task in list, filter and reorder lists', async
   const plain = row(page, 'Ohne Termin');
   const plainBounds = (await plain.boundingBox())!;
   const datedBounds = (await dated.boundingBox())!;
-  expect(plainBounds.height).toBeLessThanOrEqual(50);
+  await expect(plain.getByTestId('planning-missing')).toHaveText('Geplant am und Fällig am fehlen');
+  expect(plainBounds.height).toBeLessThanOrEqual(76);
   expect(datedBounds.height).toBeGreaterThan(plainBounds.height);
   expect(datedBounds.height).toBeLessThanOrEqual(76);
   const titleBounds = (await dated.getByTestId('task-title').boundingBox())!;
   const dateBounds = (await dated.getByLabel('Geplant am bearbeiten').boundingBox())!;
   expect(dateBounds.y).toBeGreaterThanOrEqual(titleBounds.y + titleBounds.height);
+  await page.getByRole('button', { name: 'Mehr', exact: true }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Zu planen/ })
+    .click();
+  await expect(page.getByRole('heading', { name: 'Zu planen', exact: true })).toBeVisible();
+  await expect(plain).toBeVisible();
+  await expect(dated).toHaveCount(0);
 });
 
 test('server converges when a multi-record rebalance races an offline move in either delivery order', async ({

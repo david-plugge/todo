@@ -4,6 +4,7 @@
   import type { TaskChanges } from '$lib/domain/commands';
   import type { Task, TaskList } from '$lib/domain/models';
   import { isBlankNote, renderNote } from '$lib/domain/markdown';
+  import { isPlannedAfterDeadline } from '$lib/domain/planning';
   import ListSelect from './ListSelect.svelte';
   import RecurrenceField from './RecurrenceField.svelte';
   import TaskDatePicker from './TaskDatePicker.svelte';
@@ -132,6 +133,20 @@
     >
   {/if}
 </div>
+{#if !task.completed}
+  {#if !task.plannedDate || !task.dueDate}
+    <p class="mt-1 mb-0 text-[11px] text-muted" data-testid="planning-missing">
+      {#if !task.plannedDate && !task.dueDate}Geplant am und Fällig am fehlen
+      {:else if !task.plannedDate}Geplant am fehlt
+      {:else}Fällig am fehlt{/if}
+    </p>
+  {/if}
+  {#if isPlannedAfterDeadline(task)}
+    <p class="mt-1 mb-0 text-[11px] text-danger" role="status" data-testid="planning-warning">
+      Geplant am liegt nach Fällig am. Plane die Aufgabe spätestens zur Deadline ein.
+    </p>
+  {/if}
+{/if}
 <Collapsible.Content>
   <div class="mt-1.5" data-testid="task-note">
     {#if editingNote}

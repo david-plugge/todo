@@ -1,6 +1,11 @@
 import { expect, type Page } from '@playwright/test';
 
-export async function setDate(page: Page, label: string, value: string | null) {
+export async function setDate(
+  page: Page,
+  label: string,
+  value: string | null,
+  options: { disappears?: boolean } = {},
+) {
   const scope = label.endsWith('bearbeiten')
     ? page
         .getByTestId('account-task')
@@ -24,5 +29,6 @@ export async function setDate(page: Page, label: string, value: string | null) {
     await popup.getByRole('button', { name: 'Datum entfernen', exact: true }).click();
   }
   await expect(popup).toHaveCount(0);
-  await expect(trigger).toHaveAttribute('data-date', value ?? '');
+  if (options.disappears) await expect(trigger).toHaveCount(0);
+  else await expect(trigger).toHaveAttribute('data-date', value ?? '');
 }

@@ -2,9 +2,14 @@ import { expect, test, type Page } from '@playwright/test';
 import { setDate } from './date-picker-helpers';
 import { chooseList } from './list-select-helpers';
 
-async function login(page: Page) {
+const nextYear = new Date().getFullYear() + 1;
+const futurePlanned = `${nextYear}-12-02`;
+const futureDue = `${nextYear}-12-01`;
+const pastDate = `${nextYear - 2}-01-01`;
+
+async function login(page: Page, user = 'task-groups') {
   await page.goto('/account');
-  await page.getByLabel('E-Mail', { exact: true }).fill('task-groups@example.test');
+  await page.getByLabel('E-Mail', { exact: true }).fill(`${user}@example.test`);
   await page.getByLabel('Passwort', { exact: true }).fill('test-password-12345!');
   await page.getByRole('button', { name: 'Anmelden', exact: true }).click();
   await expect(page.getByTestId('account-local-status')).toHaveText('Lokal bereit');
@@ -13,10 +18,11 @@ async function login(page: Page) {
 async function create(
   page: Page,
   title: string,
-  options: { list?: string; planned?: string } = {},
+  options: { list?: string; planned?: string; due?: string } = {},
 ) {
   await page.getByLabel('Neuer Task', { exact: true }).fill(title);
   if (options.planned) await setDate(page, 'Geplant am', options.planned);
+  if (options.due) await setDate(page, 'Fällig am', options.due);
   if (options.list) await chooseList(page, 'Liste', options.list);
   else await chooseList(page, 'Liste', 'Ohne Liste');
   await page.getByRole('button', { name: 'Task erstellen', exact: true }).click();
@@ -42,7 +48,13 @@ test('contextual task views group completed tasks below the composer and restore
   const sidebar = page.getByRole('complementary', { name: 'Aufgabenansichten' });
   const views = sidebar.getByRole('navigation', { name: 'Ansichten' }).getByRole('button');
   await expect(page.getByRole('heading', { name: 'Mein Tag', exact: true })).toBeVisible();
-  for (const [index, label] of ['Mein Tag', 'Geplant', 'Alle Aufgaben', 'Erledigt'].entries())
+  for (const [index, label] of [
+    'Zu planen',
+    'Mein Tag',
+    'Geplant',
+    'Alle Aufgaben',
+    'Erledigt',
+  ].entries())
     await expect(views.nth(index)).toContainText(label);
   const allButton = sidebar.getByRole('button', { name: /Alle Aufgaben/ });
   const plannedButton = sidebar.getByRole('button', { name: /Geplant/ });
@@ -62,7 +74,7 @@ test('contextual task views group completed tasks below the composer and restore
 
   await create(page, openTitle, { list: listName });
   await create(page, completedTitle, { list: listName });
-  await create(page, plannedTitle, { planned: '2026-12-01' });
+  await create(page, plannedTitle, { planned: futureDue, due: futurePlanned });
 
   await page.getByLabel(`${completedTitle} erledigen`, { exact: true }).click();
   const openGroup = page.getByTestId('open-task-group');
@@ -127,4 +139,53 @@ test('contextual task views group completed tasks below the composer and restore
   await expect(page.getByTestId('done-task-group').locator('[data-sortable-row]')).toHaveCount(0);
   await expect(page.getByLabel('Neuer Task', { exact: true })).toHaveCount(0);
   await expect(doneButton).toHaveAttribute('aria-current', 'page');
+});
+
+test('planning maintenance keeps missing dates visible and future tasks out of focus', async ({
+  page,
+}) => {
+  const suffix = crypto.randomUUID();
+  const title = `Noch zu planen ${suffix}`;
+  const overdueTitle = `Deadline verpasst ${suffix}`;
+  const missedTitle = `Planung verpasst ${suffix}`;
+  await login(page, 'planning');
+  const sidebar = page.getByRole('complementary', { name: 'Aufgabenansichten' });
+  const planningButton = sidebar.getByRole('button', { name: /Zu planen/ });
+  const allButton = sidebar.getByRole('button', { name: /Alle Aufgaben/ });
+  const todayButton = sidebar.getByRole('button', { name: /Mein Tag/ });
+  const plannedButton = sidebar.getByRole('button', { name: /Geplant/ });
+  const before = await sidebarCount(planningButton);
+
+  await planningButton.click();
+  await expect(page.getByRole('heading', { name: 'Zu planen', exact: true })).toBeVisible();
+  await create(page, title);
+  const row = page.getByTestId('account-task').filter({ hasText: title });
+  await expect(row.getByTestId('planning-missing')).toHaveText('Geplant am und Fällig am fehlen');
+  await expect.poll(() => sidebarCount(planningButton)).toBe(before + 1);
+  await row.getByRole('button', { name: `${title} bearbeiten`, exact: true }).click();
+  await setDate(page, 'Geplant am bearbeiten', futurePlanned);
+  await expect(row.getByTestId('planning-missing')).toHaveText('Fällig am fehlt');
+  await setDate(page, 'Fällig am bearbeiten', futureDue, { disappears: true });
+  await expect(row).toHaveCount(0);
+  await expect.poll(() => sidebarCount(planningButton)).toBe(before);
+
+  await plannedButton.click();
+  await expect(row).toBeVisible();
+  await expect(row.getByTestId('planning-warning')).toContainText('liegt nach Fällig am');
+  await todayButton.click();
+  await expect(row).toHaveCount(0);
+
+  await allButton.click();
+  await row.getByRole('button', { name: `${title} bearbeiten`, exact: true }).click();
+  await setDate(page, 'Fällig am bearbeiten', null);
+  await planningButton.click();
+  await expect(row.getByTestId('planning-missing')).toHaveText('Fällig am fehlt');
+  await row.getByLabel(`${title} erledigen`, { exact: true }).click();
+  await expect(row).toHaveCount(0);
+
+  await create(page, overdueTitle, { planned: futurePlanned, due: pastDate });
+  await create(page, missedTitle, { planned: pastDate, due: futurePlanned });
+  await todayButton.click();
+  await expect(page.getByTestId('open-task-group')).toContainText(overdueTitle);
+  await expect(page.getByTestId('open-task-group')).toContainText(missedTitle);
 });
