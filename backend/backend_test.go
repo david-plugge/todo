@@ -1309,6 +1309,9 @@ func TestOAuthRetentionUpgradeBackfillsReferencesAndCompactsTokens(t *testing.T)
 	if err := app.RunSystemMigrations(); err != nil {
 		t.Fatal(err)
 	}
+	if err := app.Save(core.NewAuthCollection("todo_users")); err != nil {
+		t.Fatal(err)
+	}
 	for _, sql := range []string{
 		`CREATE TABLE _oauth_clients (id TEXT PRIMARY KEY, data TEXT NOT NULL, created INTEGER NOT NULL)`,
 		`CREATE TABLE _oauth_pending (id TEXT PRIMARY KEY, data TEXT NOT NULL, expires INTEGER NOT NULL)`,

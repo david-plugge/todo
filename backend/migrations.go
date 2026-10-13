@@ -262,4 +262,14 @@ func init() {
 		}
 		return nil
 	}, nil, "1789557000_oauth_refresh_compaction.go")
+	m.Register(func(app core.App) error {
+		// No SMTP is configured, so PocketBase would hand new-device alerts to the
+		// local sendmail binary.
+		users, err := app.FindCollectionByNameOrId("todo_users")
+		if err != nil {
+			return err
+		}
+		users.AuthAlert.Enabled = false
+		return app.Save(users)
+	}, nil, "1789558000_disable_auth_alerts.go")
 }
