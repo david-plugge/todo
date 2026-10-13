@@ -136,7 +136,7 @@ Kompakte Refresh-Replay-Hashes einer aktiven Familie bleiben bis zu ihrer urspr�
 ## Prüfung
 
 ```sh
-pnpm run test:container
+mise run test:container
 ```
 
 Der Smoke-Test baut ein frisches Image und prüft:

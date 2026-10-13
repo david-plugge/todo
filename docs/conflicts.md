@@ -40,4 +40,4 @@ Bereits persistierte alte Outbox-Requests und Receipts werden niemals umgeschrie
 - `src/lib/sync/pull.test.ts` prüft ACK-Untergrenze, fehlgeschlagenen Folge-Pull und v1/v2-Race mit Reload.
 - `tests/pocketbase/conflicts.spec.ts` prüft zwei getrennte Chrome-Kontexte, echte Offline-Edits und Offline-Reloads. Unterschiedliche Felder, dasselbe Feld und Löschen gegen Bearbeiten laufen jeweils in beiden Verbindungsreihenfolgen. Anschließend werden die vollständigen Datensätze beider IndexedDBs mit PocketBase verglichen und erneut geladen. API-Tests prüfen Feldvalidierung, stabile Receipts, Legacy-Downgrade-Schutz und Listen.
 
-Ausführen: `pnpm test`, `pnpm run check`, `pnpm run build`, `pnpm run test:pocketbase`. Ranking, Kalenderdaten und konkurrierende Offline-Moves sind umgesetzt, siehe [ranking.md](ranking.md).
+Ausführen: `mise run test`, `mise run check`, `mise run build`, `mise run test:pocketbase`. Ranking, Kalenderdaten und konkurrierende Offline-Moves sind umgesetzt, siehe [ranking.md](ranking.md).

@@ -3,9 +3,50 @@ pnpm = "12.4.1"
 go = "1.27.1"
 golangci-lint = "2.13.2"
 
-[tasks."backend:build"]
+[env]
+_.path = ["{{config_root}}/node_modules/.bin"]
+
+[tasks.install]
+run = "pnpm install --frozen-lockfile"
+
+[tasks.dev]
+run = "vite"
+
+[tasks.preview]
+run = "vite preview"
+
+[tasks."build:frontend"]
+run = "vite build"
+
+[tasks."build:harness"]
+env = { TODO_BUILD_TARGET = "harness" }
+run = "vite build"
+
+[tasks."build:backend"]
 dir = "backend"
-run = "go build -o ../.tools/todo ."
+run = "go build -o ../bin/todo ."
+
+[tasks.build]
+depends = ["build:frontend", "build:backend"]
+
+[tasks.backend]
+depends = ["build"]
+run = "TODO_PUBLIC_URL=${TODO_PUBLIC_URL:-http://127.0.0.1:8090} bin/todo serve --http=127.0.0.1:8090 --dir=pb_data --publicDir=pb_public"
+
+[tasks.format]
+run = "prettier --write ."
+
+[tasks."format:check"]
+run = "prettier --check ."
+
+[tasks.lint]
+run = "eslint ."
+
+[tasks.check]
+run = ["svelte-kit sync", "svelte-check --tsconfig ./tsconfig.json"]
+
+[tasks.test]
+run = "vitest run"
 
 [tasks."backend:format"]
 dir = "backend"
@@ -14,3 +55,40 @@ run = "golangci-lint fmt"
 [tasks."backend:check"]
 dir = "backend"
 run = ["golangci-lint fmt --diff", "golangci-lint run", "go test ./..."]
+
+# Sequential: check and the frontend build both write .svelte-kit.
+[tasks.verify]
+run = [
+  { task = "format:check" },
+  { task = "lint" },
+  { task = "check" },
+  { task = "test" },
+  { task = "backend:check" },
+  { task = "build" },
+]
+
+[tasks."test:browser"]
+depends = ["build:harness"]
+run = "playwright test"
+
+[tasks."test:pwa"]
+depends = ["build:frontend"]
+run = "playwright test --config playwright.product-pwa.config.ts"
+
+[tasks."test:pocketbase"]
+depends = ["build"]
+run = "playwright test --config playwright.pocketbase.config.ts"
+
+[tasks."test:startup"]
+depends = ["build:backend"]
+run = "playwright test --config playwright.pocketbase.config.ts server-start"
+
+# Sequential: the harness and product builds share .svelte-kit.
+[tasks."test:e2e"]
+run = [{ task = "test:browser" }, { task = "test:pwa" }, { task = "test:pocketbase" }]
+
+[tasks."test:container"]
+run = "node tests/deployment/container-smoke.mjs"
+
+[tasks."test:restore"]
+run = "node tests/deployment/restore-smoke.mjs"

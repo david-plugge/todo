@@ -51,8 +51,8 @@ Die MCP-Command-Ausführung liest den aktuellen Datensatz innerhalb einer Transa
 
 ```sh
 mise install
-pnpm run verify
-pnpm run test:pocketbase
+mise run verify
+mise run test:pocketbase
 ```
 
 Die Integrationstests verbinden den offiziellen TypeScript-MCP-Client mit einer eigenen Testdatenbank auf einem freien Port. Sie prüfen den vollständigen Browser-OAuth-Flow, PKCE/Redirect/Client/Resource-Bindung, Scope-Prüfung, Rotation, Replay und Widerruf sowie CRUD, Idempotenz und MCP → PWA-Sync. Go-Tests prüfen zusätzlich Persistenz über Neustarts, gehashte Speicherung, Rollback und Struct-Schemas.

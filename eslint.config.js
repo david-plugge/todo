@@ -13,7 +13,7 @@ export default [
       '.claude/**',
       '.svelte-kit/**',
       '.test-build/**',
-      '.tools/**',
+      'bin/**',
       'pb_data/**',
       'pb_test_data/**',
       'pb_public/**',

@@ -13,10 +13,10 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run verify
+      - run: mise run install
+      - run: mise run verify
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm run test:e2e
+      - run: mise run test:e2e
         env:
           PLAYWRIGHT_CHANNEL: chromium
       - uses: actions/upload-artifact@v4

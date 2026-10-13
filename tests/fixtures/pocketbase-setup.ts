@@ -24,7 +24,7 @@ export default async function setup() {
     }
   };
   const temporary = await mkdtemp(join(tmpdir(), 'todo-pocketbase-'));
-  const binary = resolve('.tools/todo');
+  const binary = resolve('bin/todo');
   const names = [
     'oauth-user',
     'mcp-race',

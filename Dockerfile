@@ -13,7 +13,7 @@ RUN --mount=type=cache,target=/pnpm/store \
 COPY svelte.config.js vite.config.ts tsconfig.json ./
 COPY static ./static
 COPY src ./src
-RUN pnpm run build
+RUN pnpm exec vite build
 
 FROM --platform=$BUILDPLATFORM golang:1.27.1-bookworm AS backend
 WORKDIR /src/backend

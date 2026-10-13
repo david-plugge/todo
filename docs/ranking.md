@@ -61,12 +61,12 @@ Alte Payloads ohne die neuen Feldversionen bleiben gültig. Fehlende neue Werte 
 - Die bestehenden Atomaritäts-, Crash-, PWA-, Auth-, SSE-, ACK- und Browserstart-Tests bleiben Teil der Suite.
 
 ```sh
-pnpm test
-pnpm run check
-pnpm run build
-pnpm run test:pocketbase
-pnpm run test:browser
-pnpm run test:startup
+mise run test
+mise run check
+mise run build
+mise run test:pocketbase
+mise run test:browser
+mise run test:startup
 ```
 
 Noch offen sind echtes installiertes Mobile-PWA-Verhalten, größere Datenmengen, Log-/Receipt-Garbage-Collection und die Betriebsstrategie nach Backend-Restore. Die Touch-Tests laufen mit Chrome-Emulation, nicht auf einem echten iPhone/Android-Gerät.

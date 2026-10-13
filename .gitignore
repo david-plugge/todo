@@ -9,5 +9,6 @@ pb_data/
 .env
 .env.*
 !.env.example
-.tools/
+bin/
 pb_test_data/
+/backend/backend

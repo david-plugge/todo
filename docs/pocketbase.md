@@ -4,13 +4,11 @@
 
 ```sh
 mise install              # Go und golangci-lint aus mise.toml
-pnpm install --frozen-lockfile
-pnpm run backend:install   # nativen PocketBase-Go-Server bauen
-pnpm run build
-pnpm run backend          # 127.0.0.1:8090, persistente Daten in pb_data/
+mise run install
+mise run backend          # baut vorher; 127.0.0.1:8090, persistente Daten in pb_data/
 ```
 
-`pnpm run backend` verwendet `http://127.0.0.1:8090` als `TODO_PUBLIC_URL`, wenn die Variable
+`mise run backend` verwendet `http://127.0.0.1:8090` als `TODO_PUBLIC_URL`, wenn die Variable
 nicht bereits gesetzt ist. Ein direkter Binary- oder Containerstart bleibt fail-closed und benötigt
 `TODO_PUBLIC_URL` weiterhin explizit.
 
@@ -21,7 +19,7 @@ nicht bereits gesetzt ist. Ein direkter Binary- oder Containerstart bleibt fail-
 **Der Server öffnet keinen Browser automatisch.** [`backend/main.go`](../backend/main.go) setzt `ServeEvent.InstallerFunc` auf `nil`. Das gilt auch für frische Testdatenbanken. Einen ersten Superuser explizit mit eigener E-Mail und eigenem Passwort anlegen:
 
 ```sh
-.tools/todo superuser create 'ADMIN_EMAIL' 'ADMIN_PASSWORT' --dir=pb_data
+bin/todo superuser create 'ADMIN_EMAIL' 'ADMIN_PASSWORT' --dir=pb_data
 ```
 
 Danach im Dashboard in `todo_users` die normalen App-Benutzer mit E-Mail und Passwort anlegen. Es gibt absichtlich keine öffentliche Registrierung und keine produktiven Standardzugangsdaten. Testbenutzer werden nur im temporären Test-Launcher angelegt. Für eine Vorschau in Codex die lokale App-URL im Browser-Panel öffnen; der Server selbst steuert keine Fenster.
@@ -88,12 +86,12 @@ PocketBase liefert statische Assets mit `Vary: Origin`. Bei einem Precache-Reque
 ## Verifikation
 
 ```sh
-pnpm run test             # Unit-Tests inkl. Ranking, Kalenderdaten, Atomicity und Sync
-pnpm run check
-pnpm run build
-pnpm run test:browser     # 12 bisherige Crash-/PWA-/ACK-Browser-Tests
-pnpm run test:pocketbase  # 9 API-/MCP- und 16 Browser-Integrationstests
-pnpm run test:startup     # Server startet ohne Betriebssystem-Browseraufruf
+mise run test             # Unit-Tests inkl. Ranking, Kalenderdaten, Atomicity und Sync
+mise run check
+mise run build
+mise run test:browser     # 12 bisherige Crash-/PWA-/ACK-Browser-Tests
+mise run test:pocketbase  # 9 API-/MCP- und 16 Browser-Integrationstests
+mise run test:startup     # Server startet ohne Betriebssystem-Browseraufruf
 ```
 
 PocketBase-Tests verwenden eine frische temporäre Datenbank und Testbenutzer; sie verändern nicht `pb_data`. Das Global-Setup startet das Backend auf einem freien Port und veröffentlicht die Adresse in `TODO_TEST_ADDRESS`; so kann keine parallel laufende Suite aus einem anderen Checkout dieselben Testkonten benutzen. Die Browserkontexte laufen mit `prefers-reduced-motion: reduce`, damit Geometrie-Prüfungen fertige Layouts messen. Zwei isolierte Browserkontexte simulieren Geräte mit getrenntem Storage und unterschiedlichen Geräte-IDs. Geprüft sind Auth, Owner-Isolation, gesperrte direkte Writes, Idempotenz, List-/Task-Push, Paging, Tombstones, SSE als Pull-Trigger, Offline-Reload, abgelaufener Token und Account-Wechsel. Der Starttest fängt `open`/`xdg-open` ab und prüft, dass kein Aufruf erfolgt.

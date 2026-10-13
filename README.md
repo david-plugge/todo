@@ -10,22 +10,22 @@ Node.js 24, pnpm und mise (Paketmanager/Go/Linter); geprüft mit Node 24.20.0 un
 
 ```sh
 mise install
-pnpm install --frozen-lockfile
-pnpm run dev             # Todo-Frontend mit HMR; /api wird an das lokale Backend weitergereicht
-pnpm run backend         # PocketBase auf 8090 (für Anmeldung und Sync parallel starten)
-pnpm run test            # Unit-Tests für Ranking, Daten, Merge und IndexedDB
-pnpm run verify          # Format, Lint, Typprüfung, Unit-Tests und Build
-pnpm run build           # statische Dateien nach pb_public/
-pnpm run test:browser    # 12 Tests mit echtem Chrome/IndexedDB
-pnpm run test:pocketbase # Integrationstests gegen echtes PocketBase (backend:install zuvor ausführen)
-pnpm run test:startup    # Start ohne automatisches Browserfenster
+mise run install
+mise run dev             # Todo-Frontend mit HMR; /api wird an das lokale Backend weitergereicht
+mise run backend         # PocketBase auf 8090 (für Anmeldung und Sync parallel starten)
+mise run test            # Unit-Tests für Ranking, Daten, Merge und IndexedDB
+mise run verify          # Format, Lint, Typprüfung, Unit-Tests und Build
+mise run build           # Frontend nach pb_public/, Backend nach bin/todo
+mise run test:browser    # 12 Tests mit echtem Chrome/IndexedDB
+mise run test:pocketbase # Integrationstests gegen echtes PocketBase
+mise run test:startup    # Start ohne automatisches Browserfenster
 ```
 
-Playwright startet einen lokalen Testserver selbst, der **die Dateien aus `pb_public/`** ausliefert. Vor Browser-Tests den aktuellen Build erstellen. Standard ist installiertes Google Chrome. Alternativ `pnpm exec playwright install chromium` und `PLAYWRIGHT_CHANNEL=chromium pnpm run test:browser`.
+Playwright startet einen lokalen Testserver selbst, der **die Dateien aus `pb_public/`** ausliefert. Standard ist installiertes Google Chrome. Alternativ `pnpm exec playwright install chromium` und `PLAYWRIGHT_CHANNEL=chromium mise run test:browser`.
 
 Die Browser-Tests starten eine ausschließlich testinterne Harness auf Port 4173 und beenden sie anschließend. Sie ist nicht Teil der ausgelieferten Anwendung.
 
-Die Arbeitsdaten liegen pro Konto in einer eigenen IndexedDB-Datenbank. Testdaten und der Testserver sind davon isoliert; ihr flüchtiger Zustand ist kein Backend für echte Daten. `pnpm run dev`/`preview` liefern keine eigene API aus: Der Dev-Server leitet `/api` und `/.well-known` nur an ein selbst gestartetes PocketBase weiter (Standard `http://127.0.0.1:8090`, abweichend über `TODO_BACKEND_URL`). Ohne laufendes Backend bleibt die Anmeldung erwartungsgemäß erfolglos.
+Die Arbeitsdaten liegen pro Konto in einer eigenen IndexedDB-Datenbank. Testdaten und der Testserver sind davon isoliert; ihr flüchtiger Zustand ist kein Backend für echte Daten. `mise run dev`/`preview` liefern keine eigene API aus: Der Dev-Server leitet `/api` und `/.well-known` nur an ein selbst gestartetes PocketBase weiter (Standard `http://127.0.0.1:8090`, abweichend über `TODO_BACKEND_URL`). Ohne laufendes Backend bleibt die Anmeldung erwartungsgemäß erfolglos.
 
 Für das Deployment reicht `pb_public/` neben dem selbst gebauten PocketBase-Go-Binary; eine produktive Node-Anwendung ist nicht erforderlich. Die Browser-Test-Harness ist ausschließlich eine Testfixture. Die SPA nutzt `ssr = false`, `prerender = false` und `adapter-static` mit `fallback: 'index.html'`.
 
@@ -40,9 +40,7 @@ Das native Go-Backend integriert das offizielle MCP-SDK und acht typisierte Aufg
 Todo verbindet die App unter `/` mit PocketBase: Auth, getrennte Benutzerdatenbanken, Owner-Regeln, transaktionaler Push, stabiler Pull-Cursor und SSE als Pull-Trigger. `/account` bleibt als Weiterleitung für bestehende Links erhalten.
 
 ```sh
-pnpm run backend:install
-pnpm run build
-pnpm run backend # lokaler Public-URL-Default: http://127.0.0.1:8090
+mise run backend # baut vorher; lokaler Public-URL-Default: http://127.0.0.1:8090
 # http://127.0.0.1:8090/
 ```
 

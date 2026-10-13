@@ -17,7 +17,7 @@ test('fresh PocketBase start never invokes an OS browser opener', async () => {
       { mode: 0o755 },
     );
   const child = spawn(
-    resolve('.tools/todo'),
+    resolve('bin/todo'),
     ['serve', '--http=127.0.0.1:8092', `--dir=${join(directory, 'data')}`],
     {
       env: {

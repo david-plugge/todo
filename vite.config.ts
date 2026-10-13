@@ -3,7 +3,7 @@ import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 // The SPA talks to its own origin, so the dev server forwards the backend paths to a
-// locally running PocketBase. Only `pnpm run backend` serves them; nothing is mocked.
+// locally running PocketBase. Only `mise run backend` serves them; nothing is mocked.
 const backend = process.env.TODO_BACKEND_URL ?? 'http://127.0.0.1:8090';
 
 export default defineConfig({

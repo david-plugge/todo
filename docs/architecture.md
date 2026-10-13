@@ -33,12 +33,11 @@ Node.js 24 verwenden. JavaScript-Abhängigkeiten stehen in `pnpm-lock.yaml`, Go-
 
 ```sh
 mise install
-pnpm install --frozen-lockfile
-pnpm run format       # Frontend und Dokumentation formatieren
-pnpm run backend:format # Go formatieren
-pnpm run verify       # Formatcheck, ESLint, Svelte/TypeScript, Unit-Tests, Go-Lint/Tests und Builds
-pnpm run backend:install
-pnpm run test:e2e     # Browser-Harness, PocketBase und Serverstart ohne Browser-Öffnung
+mise run install
+mise run format       # Frontend und Dokumentation formatieren
+mise run backend:format # Go formatieren
+mise run verify       # Formatcheck, ESLint, Svelte/TypeScript, Unit-Tests, Go-Lint/Tests und Builds
+mise run test:e2e     # Browser-Harness, PocketBase und Serverstart ohne Browser-Öffnung
 ```
 
 Die GitHub-Actions-Konfiguration führt diese Prüfungen mit Chromium unter Linux aus. Lokal verwenden die Browser-Tests standardmäßig Chrome; `PLAYWRIGHT_CHANNEL=chromium` wählt installiertes Playwright-Chromium. Testserver verwenden eigene Datenverzeichnisse und Ports. Fehlerartefakte liegen getrennt nach Browser- und PocketBase-Tests.
